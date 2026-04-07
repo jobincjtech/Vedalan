@@ -1,6 +1,6 @@
 
 const SHEET_ID='PASTE_GOOGLE_SHEET_ID_HERE';
-const PHOTO_FOLDER_ID='PASTE_GOOGLE_DRIVE_FOLDER_ID_HERE';
+const PHOTO_FOLDER_ID='1mAP4ZIMraC87pjR0yZRfa1uX5nanrG0s?dmr=1&ec=wgc-drive-%5Bmodule%5D-goto';
 function doPost(e){try{const body=JSON.parse(e.postData.contents||'{}');const action=body.action;let result={};if(action==='login')result=login_(body);else if(action==='submitInspection')result=submitInspection_(body);else if(action==='dashboard')result=dashboard_(body.month);else if(action==='exportCsv')result=exportCsv_(body.month);else throw new Error('Unsupported action');return json_({ok:true,...result})}catch(error){return json_({ok:false,message:error.message||String(error)})}}
 function json_(obj){return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON)}
 function getSheet_(name){return SpreadsheetApp.openById(SHEET_ID).getSheetByName(name)}
