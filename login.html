@@ -1,1 +1,436 @@
-<!DOCTYPE html><html lang='en'><head><meta charset='UTF-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>Inspector Login</title><link rel='preconnect' href='https://fonts.googleapis.com'><link rel='preconnect' href='https://fonts.gstatic.com' crossorigin><link href='https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap' rel='stylesheet'><link rel='stylesheet' href='assets/styles.css'></head><body><div class='container'><div class='hero'><div class='brand'><div class='logo'>🧯</div><div><h1>AHM Fire Extinguisher Inspection</h1><p>Mobile-friendly monthly inspection login</p></div></div><div class='tag'>GitHub Pages + Apps Script</div></div><div class='grid grid-2'><div class='card panel'><div class='section-title'><h2>Inspector Login</h2></div><div id='loginNotice' class='notice hidden'></div><form id='loginForm'><div class='grid'><div class='field'><label>Inspector ID</label><input name='inspectorId' placeholder='Example: INS-001' required></div><div class='field'><label>PIN</label><input name='pin' type='password' placeholder='Enter PIN' required></div></div><div class='actions' style='margin-top:16px'><button type='submit'>Login</button></div></form></div><div class='card panel'><div class='section-title'><h2>How it works</h2></div><div class='stat-line'><strong>1.</strong><span>Inspector logs in with Inspector ID and PIN.</span></div><div class='stat-line'><strong>2.</strong><span>QR code opens inspect.html?id=AHM/HSE/FEX/001.</span></div><div class='stat-line'><strong>3.</strong><span>Checklist is submitted with optional photo.</span></div><div class='stat-line'><strong>4.</strong><span>Data is stored in Google Sheets and photo in Google Drive.</span></div><div class='stat-line'><strong>5.</strong><span>Dashboard shows checked, pending, and failed equipment.</span></div></div></div></div><script src='assets/config.js'></script><script src='assets/app.js'></script></body></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Inspector Login</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --bg1:#06101f;
+      --bg2:#0a1830;
+      --panel:rgba(255,255,255,.08);
+      --line:rgba(255,255,255,.12);
+      --text:#eef5ff;
+      --muted:#9fb5d6;
+      --accent1:#39b8ff;
+      --accent2:#2f6bff;
+      --accent3:#6ef0c2;
+      --danger:#ff7d7d;
+      --shadow:0 25px 60px rgba(0,0,0,.35);
+    }
+
+    *{box-sizing:border-box}
+    html,body{
+      margin:0;
+      padding:0;
+      min-height:100%;
+      font-family:Inter,Segoe UI,Arial,sans-serif;
+      color:var(--text);
+      background:
+        radial-gradient(circle at 15% 20%, rgba(57,184,255,.18), transparent 22%),
+        radial-gradient(circle at 85% 18%, rgba(110,240,194,.12), transparent 18%),
+        radial-gradient(circle at 70% 75%, rgba(47,107,255,.18), transparent 22%),
+        linear-gradient(180deg,var(--bg1) 0%, var(--bg2) 100%);
+      overflow-x:hidden;
+    }
+
+    body::before,
+    body::after{
+      content:"";
+      position:fixed;
+      inset:auto;
+      width:420px;
+      height:420px;
+      border-radius:50%;
+      filter:blur(90px);
+      opacity:.22;
+      z-index:0;
+      pointer-events:none;
+      animation: floatGlow 8s ease-in-out infinite;
+    }
+
+    body::before{
+      top:-80px;
+      left:-80px;
+      background:var(--accent1);
+    }
+
+    body::after{
+      bottom:-120px;
+      right:-80px;
+      background:var(--accent2);
+      animation-delay:2s;
+    }
+
+    @keyframes floatGlow{
+      0%,100%{transform:translateY(0) translateX(0)}
+      50%{transform:translateY(20px) translateX(12px)}
+    }
+
+    .grid-lines{
+      position:fixed;
+      inset:0;
+      background-image:
+        linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px);
+      background-size:36px 36px;
+      mask-image:linear-gradient(to bottom, rgba(0,0,0,.7), rgba(0,0,0,.15));
+      pointer-events:none;
+      z-index:0;
+    }
+
+    .wrap{
+      position:relative;
+      z-index:1;
+      width:min(1180px,94vw);
+      margin:0 auto;
+      min-height:100vh;
+      display:grid;
+      grid-template-columns:1.05fr .95fr;
+      gap:28px;
+      align-items:center;
+      padding:28px 0;
+    }
+
+    .hero{
+      padding:10px 6px 10px 4px;
+    }
+
+    .badge{
+      display:inline-flex;
+      align-items:center;
+      gap:10px;
+      padding:10px 16px;
+      border:1px solid var(--line);
+      border-radius:999px;
+      background:rgba(255,255,255,.05);
+      color:#cfe1ff;
+      font-size:.88rem;
+      backdrop-filter:blur(12px);
+      box-shadow:var(--shadow);
+    }
+
+    .badge-dot{
+      width:10px;
+      height:10px;
+      border-radius:50%;
+      background:linear-gradient(135deg,var(--accent3),var(--accent1));
+      box-shadow:0 0 18px rgba(57,184,255,.8);
+      animation:pulse 2s infinite;
+    }
+
+    @keyframes pulse{
+      0%,100%{transform:scale(1);opacity:1}
+      50%{transform:scale(1.25);opacity:.65}
+    }
+
+    .hero h1{
+      margin:20px 0 14px;
+      font-size:clamp(2.2rem,4vw,4.2rem);
+      line-height:1.03;
+      letter-spacing:-0.04em;
+    }
+
+    .hero h1 .grad{
+      background:linear-gradient(90deg,#ffffff,var(--accent1),var(--accent3));
+      -webkit-background-clip:text;
+      -webkit-text-fill-color:transparent;
+      background-clip:text;
+      color:transparent;
+    }
+
+    .hero p{
+      margin:0;
+      max-width:620px;
+      color:var(--muted);
+      font-size:1.02rem;
+      line-height:1.7;
+    }
+
+    .hero-panels{
+      margin-top:28px;
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:16px;
+    }
+
+    .mini-card{
+      position:relative;
+      overflow:hidden;
+      border:1px solid var(--line);
+      border-radius:24px;
+      background:linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.03));
+      backdrop-filter:blur(14px);
+      padding:18px;
+      min-height:125px;
+      box-shadow:var(--shadow);
+    }
+
+    .mini-card::before{
+      content:"";
+      position:absolute;
+      top:-40px;
+      right:-40px;
+      width:120px;
+      height:120px;
+      border-radius:50%;
+      background:radial-gradient(circle, rgba(57,184,255,.22), transparent 70%);
+    }
+
+    .mini-icon{
+      width:44px;
+      height:44px;
+      border-radius:14px;
+      display:grid;
+      place-items:center;
+      font-size:1.25rem;
+      background:linear-gradient(135deg, rgba(57,184,255,.25), rgba(47,107,255,.25));
+      border:1px solid rgba(255,255,255,.08);
+      margin-bottom:14px;
+    }
+
+    .mini-card strong{
+      display:block;
+      font-size:1rem;
+      margin-bottom:8px;
+    }
+
+    .mini-card span{
+      color:var(--muted);
+      font-size:.9rem;
+      line-height:1.5;
+    }
+
+    .login-card{
+      position:relative;
+      overflow:hidden;
+      border:1px solid var(--line);
+      border-radius:32px;
+      background:linear-gradient(180deg, rgba(255,255,255,.09), rgba(255,255,255,.04));
+      backdrop-filter:blur(18px);
+      box-shadow:var(--shadow);
+      padding:28px;
+    }
+
+    .login-card::before{
+      content:"";
+      position:absolute;
+      inset:-1px;
+      border-radius:32px;
+      padding:1px;
+      background:linear-gradient(135deg, rgba(57,184,255,.55), rgba(110,240,194,.18), rgba(47,107,255,.45));
+      -webkit-mask:
+        linear-gradient(#000 0 0) content-box,
+        linear-gradient(#000 0 0);
+      -webkit-mask-composite:xor;
+      mask-composite:exclude;
+      pointer-events:none;
+    }
+
+    .login-top{
+      display:flex;
+      align-items:center;
+      gap:14px;
+      margin-bottom:24px;
+    }
+
+    .shield{
+      width:58px;
+      height:58px;
+      border-radius:18px;
+      display:grid;
+      place-items:center;
+      font-size:1.6rem;
+      background:linear-gradient(135deg,var(--accent1),var(--accent2));
+      box-shadow:0 18px 40px rgba(38,119,255,.32);
+    }
+
+    .login-top h2{
+      margin:0;
+      font-size:1.5rem;
+    }
+
+    .login-top p{
+      margin:4px 0 0;
+      color:var(--muted);
+      font-size:.93rem;
+    }
+
+    .notice{
+      display:none;
+      margin-bottom:16px;
+      padding:13px 14px;
+      border-radius:16px;
+      border:1px solid rgba(255,125,125,.35);
+      background:rgba(255,125,125,.08);
+      color:#ffd2d2;
+      font-size:.92rem;
+    }
+
+    .field{
+      margin-bottom:16px;
+    }
+
+    .field label{
+      display:block;
+      margin-bottom:8px;
+      color:#cfe0fb;
+      font-size:.9rem;
+      font-weight:600;
+    }
+
+    .field input{
+      width:100%;
+      padding:15px 16px;
+      border-radius:16px;
+      border:1px solid var(--line);
+      background:rgba(3,9,18,.45);
+      color:var(--text);
+      outline:none;
+      font:inherit;
+      transition:.2s ease;
+    }
+
+    .field input:focus{
+      border-color:rgba(57,184,255,.55);
+      box-shadow:0 0 0 4px rgba(57,184,255,.12);
+      transform:translateY(-1px);
+    }
+
+    .login-btn{
+      width:100%;
+      margin-top:6px;
+      border:none;
+      border-radius:18px;
+      padding:15px 18px;
+      font:inherit;
+      font-weight:800;
+      color:#fff;
+      cursor:pointer;
+      background:linear-gradient(135deg,var(--accent1),var(--accent2));
+      box-shadow:0 18px 40px rgba(31,121,255,.28);
+      transition:.2s ease;
+    }
+
+    .login-btn:hover{
+      transform:translateY(-1px);
+    }
+
+    .login-footer{
+      margin-top:18px;
+      padding-top:16px;
+      border-top:1px solid rgba(255,255,255,.08);
+      color:var(--muted);
+      font-size:.87rem;
+      line-height:1.6;
+      text-align:center;
+    }
+
+    @media (max-width:980px){
+      .wrap{
+        grid-template-columns:1fr;
+        gap:22px;
+        padding:20px 0 28px;
+      }
+      .hero-panels{
+        grid-template-columns:1fr;
+      }
+      .hero{
+        padding:0;
+      }
+      .hero h1{
+        font-size:2.3rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="grid-lines"></div>
+
+  <div class="wrap">
+    <section class="hero">
+      <div class="badge">
+        <span class="badge-dot"></span>
+        AHM Fire Extinguisher Inspection Portal
+      </div>
+
+      <h1>
+        Secure <span class="grad">Inspector Login</span><br>
+        for Monthly Fire Safety Checks
+      </h1>
+
+      <p>
+        Centralized login portal for extinguisher inspection, QR-based field verification,
+        checklist submission, and live monitoring.
+      </p>
+
+      <div class="hero-panels">
+        <div class="mini-card">
+          <div class="mini-icon">🧯</div>
+          <strong>Equipment Tracking</strong>
+          <span>Scan each extinguisher QR and access the exact inspection form instantly.</span>
+        </div>
+
+        <div class="mini-card">
+          <div class="mini-icon">📸</div>
+          <strong>Photo Evidence</strong>
+          <span>Capture equipment condition during inspection and store it with the record.</span>
+        </div>
+
+        <div class="mini-card">
+          <div class="mini-icon">📊</div>
+          <strong>Live Dashboard</strong>
+          <span>Monitor submitted, pending, and failed inspections from one central view.</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="login-card">
+      <div class="login-top">
+        <div class="shield">🔐</div>
+        <div>
+          <h2>Inspector Access</h2>
+          <p>Sign in with your Inspector ID and PIN</p>
+        </div>
+      </div>
+
+      <div id="loginNotice" class="notice"></div>
+
+      <form id="loginForm">
+        <div class="field">
+          <label for="inspectorId">Inspector ID</label>
+          <input id="inspectorId" name="inspectorId" type="text" placeholder="Id" required>
+        </div>
+
+        <div class="field">
+          <label for="pin">PIN</label>
+          <input id="pin" name="pin" type="password" placeholder="Enter secure PIN" required>
+        </div>
+
+        <button class="login-btn" type="submit">Login to Inspection System</button>
+      </form>
+
+      <div class="login-footer">
+        Authorized personnel only. All inspection activities are recorded in the central system.
+      </div>
+    </section>
+  </div>
+
+  <script src="assets/config.js"></script>
+  <script src="assets/app.js"></script>
+  <script>
+    const loginNotice = document.getElementById("loginNotice");
+    const observer = new MutationObserver(() => {
+      if (loginNotice.textContent.trim() !== "") {
+        loginNotice.style.display = "block";
+      }
+    });
+    observer.observe(loginNotice, { childList: true, subtree: true });
+  </script>
+</body>
+</html>
