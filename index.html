@@ -1,1 +1,141 @@
-<!DOCTYPE html><html lang='en'><head><meta charset='UTF-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>Inspection Dashboard</title><link rel='preconnect' href='https://fonts.googleapis.com'><link rel='preconnect' href='https://fonts.gstatic.com' crossorigin><link href='https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap' rel='stylesheet'><link rel='stylesheet' href='assets/styles.css'></head><body><div class='container' id='dashboardPage'><div class='hero'><div class='brand'><div class='logo'>🧯</div><div><h1>AHM Fire Extinguisher Dashboard</h1><p>Checked, pending, failed, and monthly inspection trends</p></div></div><div class='actions'><div id='userChip' class='tag'>Not logged in</div><a class='btn secondary' href='login.html'>Login</a><button class='btn secondary' data-logout type='button'>Logout</button></div></div><div id='dashNotice' class='notice hidden'></div><div class='card panel'><div class='topbar'><div class='section-title'><h2>Filters</h2></div><div class='searchbar'><input id='monthFilter' type='month'><button id='refreshBtn' type='button'>Refresh</button><button id='exportBtn' type='button' class='btn good'>Download CSV</button><a class='btn secondary' href='inspect.html?id=AHM/HSE/FEX/001'>Open Sample Form</a></div></div></div><div class='grid grid-4' style='margin-top:16px'><div class='card kpi'><div class='label'>Total Equipment</div><div id='kpiTotal' class='value'>-</div></div><div class='card kpi'><div class='label'>Checked This Month</div><div id='kpiChecked' class='value'>-</div></div><div class='card kpi'><div class='label'>Pending This Month</div><div id='kpiPending' class='value'>-</div></div><div class='card kpi'><div class='label'>Failed This Month</div><div id='kpiFailed' class='value'>-</div></div></div><div class='grid grid-2' style='margin-top:16px'><div class='card panel'><div class='section-title'><h2>Pending Equipment</h2></div><div class='table-wrap'><table><thead><tr><th>Equipment ID</th><th>Location</th><th>Department</th><th>Type</th></tr></thead><tbody id='pendingTable'></tbody></table></div></div><div class='card panel'><div class='section-title'><h2>Department Summary</h2></div><div class='table-wrap'><table><thead><tr><th>Department</th><th>Total</th><th>Checked</th><th>Pending</th><th>Failed</th></tr></thead><tbody id='deptTable'></tbody></table></div></div></div><div class='card panel' style='margin-top:16px'><div class='section-title'><h2>Recent Inspections</h2></div><div class='table-wrap'><table><thead><tr><th>Date</th><th>Equipment ID</th><th>Location</th><th>Inspector</th><th>Status</th><th>Remarks</th></tr></thead><tbody id='recentTable'></tbody></table></div></div></div><script src='assets/config.js'></script><script src='assets/app.js'></script></body></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Inspection Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+  <div class="container" id="dashboardPage">
+    <div class="hero">
+      <div class="brand">
+        <div class="logo">🧯</div>
+        <div>
+          <h1>AHM Fire Extinguisher Dashboard</h1>
+          <p>Monthly inspection tracking and status monitoring</p>
+        </div>
+      </div>
+      <div class="actions">
+        <div id="userChip" class="tag">Not logged in</div>
+        <a class="btn secondary" href="login.html">Login</a>
+        <button class="btn secondary" data-logout type="button">Logout</button>
+      </div>
+    </div>
+
+    <div id="dashNotice" class="notice hidden"></div>
+
+    <div class="card panel">
+      <div class="topbar">
+        <div class="section-title"><h2>Dashboard Filters</h2></div>
+        <div class="searchbar">
+          <input id="monthFilter" type="month">
+          <select id="statusFilter">
+            <option value="all">All Items</option>
+            <option value="pending">Pending Items</option>
+            <option value="completed">Completed Items</option>
+            <option value="failed">Failed Items</option>
+          </select>
+          <select id="departmentFilter">
+            <option value="">All Departments</option>
+          </select>
+          <input id="searchFilter" type="text" placeholder="Search equipment / location / remarks">
+          <button id="refreshBtn" type="button">Refresh</button>
+          <button id="exportBtn" type="button" class="btn good">Download CSV</button>
+          <a class="btn secondary" href="inspect.html?id=AHM/HSE/FEX/001">Open Sample Form</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid grid-4" style="margin-top:16px">
+      <div class="card kpi">
+        <div class="label">Total Equipment</div>
+        <div id="kpiTotal" class="value">-</div>
+      </div>
+      <div class="card kpi">
+        <div class="label">Completed This Month</div>
+        <div id="kpiChecked" class="value">-</div>
+      </div>
+      <div class="card kpi">
+        <div class="label">Pending This Month</div>
+        <div id="kpiPending" class="value">-</div>
+      </div>
+      <div class="card kpi">
+        <div class="label">Failed This Month</div>
+        <div id="kpiFailed" class="value">-</div>
+      </div>
+    </div>
+
+    <div class="card panel" style="margin-top:16px">
+      <div class="section-title">
+        <h2>Equipment Status List</h2>
+        <div class="small">Records: <strong id="recordCount">0</strong></div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Equipment ID</th>
+              <th>Location</th>
+              <th>Department</th>
+              <th>Type</th>
+              <th>Status</th>
+              <th>Inspection Date</th>
+              <th>Inspector</th>
+              <th>Final Status</th>
+              <th>Remarks</th>
+            </tr>
+          </thead>
+          <tbody id="equipmentTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="grid grid-2" style="margin-top:16px">
+      <div class="card panel">
+        <div class="section-title"><h2>Department Summary</h2></div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Department</th>
+                <th>Total</th>
+                <th>Completed</th>
+                <th>Pending</th>
+                <th>Failed</th>
+              </tr>
+            </thead>
+            <tbody id="deptTable"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card panel">
+        <div class="section-title"><h2>Recent Inspections</h2></div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Equipment ID</th>
+                <th>Location</th>
+                <th>Department</th>
+                <th>Inspector</th>
+                <th>Final Status</th>
+                <th>Remarks</th>
+              </tr>
+            </thead>
+            <tbody id="recentTable"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="assets/config.js"></script>
+  <script src="assets/app.js"></script>
+</body>
+</html>
