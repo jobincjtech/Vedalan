@@ -1,13 +1,6 @@
 const config = window.FIRE_APP_CONFIG || {};
 const byId = id => document.getElementById(id);
 
-const fmtDate = value => {
-  if (!value) return "-";
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return value;
-  return d.toLocaleDateString();
-};
-
 const currentMonthKey = () => {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
@@ -47,6 +40,49 @@ async function loadEquipmentMap() {
   const map = {};
   list.forEach(row => map[row.equipmentId] = row);
   return { list, map };
+}
+
+async function loadFormQuestions() {
+  const url = config.APPS_SCRIPT_URL + "?action=formQuestions";
+  const res = await fetch(url, { cache: "no-store" });
+  const json = await res.json();
+  if (!json.ok) throw new Error(json.message || "Unable to load form questions");
+  return json.questions || [];
+}
+
+function renderDynamicQuestions(questions) {
+  const area = byId("dynamicQuestionArea");
+  if (!area) return;
+
+  area.innerHTML = questions.map(q => {
+    if (q.fieldType === "select") {
+      return `
+        <div class="field">
+          <label>${q.label}</label>
+          <select name="${q.fieldKey}" ${q.required ? "required" : ""}>
+            <option value="">Select</option>
+            ${(q.options || []).map(opt => `<option>${opt}</option>`).join("")}
+          </select>
+        </div>
+      `;
+    }
+
+    if (q.fieldType === "textarea") {
+      return `
+        <div class="field" style="grid-column:1 / -1">
+          <label>${q.label}</label>
+          <textarea name="${q.fieldKey}" ${q.required ? "required" : ""}></textarea>
+        </div>
+      `;
+    }
+
+    return `
+      <div class="field">
+        <label>${q.label}</label>
+        <input name="${q.fieldKey}" type="text" ${q.required ? "required" : ""}>
+      </div>
+    `;
+  }).join("");
 }
 
 function getSession() {
@@ -146,6 +182,9 @@ async function initInspectionPage() {
     return;
   }
 
+  const questions = await loadFormQuestions();
+  renderDynamicQuestions(questions);
+
   byId("equipmentSummary").innerHTML = `
     <div class="stat-line"><strong>Equipment ID</strong><span>${equipment.equipmentId}</span></div>
     <div class="stat-line"><strong>Location</strong><span>${equipment.location || "-"}</span></div>
@@ -204,21 +243,13 @@ async function initInspectionPage() {
       location: fd.location,
       department: fd.department,
       inspectionDate: fd.inspectionDate,
-      extinguisherPresent: fd.extinguisherPresent,
-      pressureGaugeNormal: fd.pressureGaugeNormal,
-      safetyPinPresent: fd.safetyPinPresent,
-      sealIntact: fd.sealIntact,
-      hoseNozzleOk: fd.hoseNozzleOk,
-      bodyConditionOk: fd.bodyConditionOk,
-      labelReadable: fd.labelReadable,
-      accessibleUnobstructed: fd.accessibleUnobstructed,
-      mountedProperly: fd.mountedProperly,
-      serviceTagAvailable: fd.serviceTagAvailable,
-      refillRequired: fd.refillRequired,
-      leakOrDamageFound: fd.leakOrDamageFound,
       remarks: fd.remarks || "",
       photoBase64
     };
+
+    questions.forEach(q => {
+      payload[q.fieldKey] = fd[q.fieldKey] || "";
+    });
 
     const criticalFail =
       payload.extinguisherPresent === "No" ||
@@ -247,6 +278,8 @@ async function initInspectionPage() {
       form.inspectorName.value = session.name || "";
       form.inspectorId.value = session.inspectorId || "";
       form.inspectionDate.valueAsDate = new Date();
+
+      renderDynamicQuestions(questions);
     } catch (err) {
       notice.className = "notice error";
       notice.textContent = "Submit failed: " + err.message;
@@ -288,9 +321,14 @@ function renderEquipmentTable(items) {
 }
 
 function applyDashboardFilters() {
-  const mode = byId("statusFilter")?.value || "all";
-  const dept = (byId("departmentFilter")?.value || "").toLowerCase();
-  const search = (byId("searchFilter")?.value || "").toLowerCase();
+  const statusEl = byId("statusFilter");
+  const deptEl = byId("departmentFilter");
+  const searchEl = byId("searchFilter");
+  if (!statusEl || !deptEl || !searchEl) return;
+
+  const mode = statusEl.value || "all";
+  const dept = (deptEl.value || "").toLowerCase();
+  const search = (searchEl.value || "").toLowerCase();
 
   let source = dashboardData.allItems;
 
@@ -305,7 +343,7 @@ function applyDashboardFilters() {
     return deptMatch && searchMatch;
   });
 
-  byId("recordCount").textContent = filtered.length;
+  if (byId("recordCount")) byId("recordCount").textContent = filtered.length;
   renderEquipmentTable(filtered);
 }
 
@@ -345,9 +383,10 @@ async function initDashboardPage() {
 async function loadDashboard() {
   const month = byId("monthFilter").value || currentMonthKey();
   const notice = byId("dashNotice");
-  notice.className = "notice hidden";
+  if (notice) notice.className = "notice hidden";
 
   const refreshBtn = byId("refreshBtn");
+  if (!refreshBtn) return;
   const oldText = refreshBtn.textContent;
   refreshBtn.disabled = true;
   refreshBtn.textContent = "Refreshing...";
@@ -363,10 +402,10 @@ async function loadDashboard() {
       byDepartment: out.byDepartment || []
     };
 
-    byId("kpiTotal").textContent = out.summary.totalEquipment ?? "-";
-    byId("kpiChecked").textContent = out.summary.checkedThisMonth ?? "-";
-    byId("kpiPending").textContent = out.summary.pendingThisMonth ?? "-";
-    byId("kpiFailed").textContent = out.summary.failedThisMonth ?? "-";
+    if (byId("kpiTotal")) byId("kpiTotal").textContent = out.summary.totalEquipment ?? "-";
+    if (byId("kpiChecked")) byId("kpiChecked").textContent = out.summary.checkedThisMonth ?? "-";
+    if (byId("kpiPending")) byId("kpiPending").textContent = out.summary.pendingThisMonth ?? "-";
+    if (byId("kpiFailed")) byId("kpiFailed").textContent = out.summary.failedThisMonth ?? "-";
 
     const deptSelect = byId("departmentFilter");
     const selectedDept = deptSelect.value;
@@ -377,32 +416,38 @@ async function loadDashboard() {
 
     deptSelect.value = selectedDept;
 
-    byId("deptTable").innerHTML = (out.byDepartment || []).map(x => `
-      <tr>
-        <td>${x.department || "-"}</td>
-        <td>${x.total}</td>
-        <td>${x.checked}</td>
-        <td>${x.pending}</td>
-        <td>${statusBadge(x.failed ? x.failed + " Fail" : "0 Fail")}</td>
-      </tr>
-    `).join("") || `<tr><td colspan="5">No department summary.</td></tr>`;
+    if (byId("deptTable")) {
+      byId("deptTable").innerHTML = (out.byDepartment || []).map(x => `
+        <tr>
+          <td>${x.department || "-"}</td>
+          <td>${x.total}</td>
+          <td>${x.checked}</td>
+          <td>${x.pending}</td>
+          <td>${statusBadge(x.failed ? x.failed + " Fail" : "0 Fail")}</td>
+        </tr>
+      `).join("") || `<tr><td colspan="5">No department summary.</td></tr>`;
+    }
 
-    byId("recentTable").innerHTML = (out.recent || []).map(x => `
-      <tr>
-        <td>${x.inspectionDate || "-"}</td>
-        <td>${x.equipmentId || "-"}</td>
-        <td>${x.location || "-"}</td>
-        <td>${x.department || "-"}</td>
-        <td>${x.inspectorName || "-"}</td>
-        <td>${statusBadge(x.finalStatus || "-")}</td>
-        <td>${x.remarks || "-"}</td>
-      </tr>
-    `).join("") || `<tr><td colspan="7">No recent inspections found.</td></tr>`;
+    if (byId("recentTable")) {
+      byId("recentTable").innerHTML = (out.recent || []).map(x => `
+        <tr>
+          <td>${x.inspectionDate || "-"}</td>
+          <td>${x.equipmentId || "-"}</td>
+          <td>${x.location || "-"}</td>
+          <td>${x.department || "-"}</td>
+          <td>${x.inspectorName || "-"}</td>
+          <td>${statusBadge(x.finalStatus || "-")}</td>
+          <td>${x.remarks || "-"}</td>
+        </tr>
+      `).join("") || `<tr><td colspan="7">No recent inspections found.</td></tr>`;
+    }
 
     applyDashboardFilters();
   } catch (err) {
-    notice.className = "notice error";
-    notice.textContent = err.message;
+    if (notice) {
+      notice.className = "notice error";
+      notice.textContent = err.message;
+    }
   } finally {
     refreshBtn.disabled = false;
     refreshBtn.textContent = oldText;
