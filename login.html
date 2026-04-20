@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Inspector Login</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --bg:#0a0f0e;
+      --bg2:#0e1a18;
+      --panel:rgba(255,255,255,.07);
+      --line:rgba(255,255,255,.10);
+      --text:#edf8f4;
+      --muted:#8fb0a8;
+      --red:#ff3b2f;
+      --red2:#c9200f;
+      --red3:#ff6b5b;
+      --orange:#ff7c2a;
+      --orange2:#e85b00;
+      --silver:#c8d8d4;
+      --dark-green:#0e2420;
+      --shadow:0 30px 80px rgba(0,0,0,.55);
+    }
+
+    *{ box-sizing:border-box; }
+    html,body{ height:100%; margin:0; }
+
+    body{
+      font-family: Inter, 'Segoe UI', Arial, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 15% 20%, rgba(255,59,47,.14), transparent 28%),
+        radial-gradient(circle at 85% 75%, rgba(255,124,42,.10), transparent 25%),
+        radial-gradient(circle at 60% 10%, rgba(200,15,0,.08), transparent 22%),
+        linear-gradient(150deg, #0a0f0e 0%, #0e1a18 60%, #120d0d 100%);
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* ── animated heat-glow orbs ── */
+    body::before, body::after {
+      content: "";
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(100px);
+      opacity: .18;
+      pointer-events: none;
+      animation: heatFloat 9s ease-in-out infinite;
+    }
+    body::before {
+      width: 480px; height: 480px;
+      top: -140px; left: -100px;
+      background: var(--red);
+    }
+    body::after {
+      width: 380px; height: 380px;
+      right: -100px; bottom: -120px;
+      background: var(--orange);
+      animation-delay: 3s;
+    }
+    @keyframes heatFloat {
+      0%,100%{ transform:translate(0,0); }
+      50%{ transform:translate(18px,16px); }
+    }
+
+    /* ── subtle grid ── */
+    .grid-overlay {
+      position: absolute; inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
+      background-size: 36px 36px;
+      mask-image: linear-gradient(to bottom, rgba(0,0,0,.7), rgba(0,0,0,.1));
+      pointer-events: none;
+    }
+
+    .stage {
+      position: relative; z-index: 1;
+      min-height: 100%;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+    }
+
+    .shell {
+      width: min(1120px, 100%);
+      display: grid;
+      grid-template-columns: 1.08fr .92fr;
+      gap: 26px;
+      align-items: stretch;
+    }
+
+    /* ═══════════════════════════════
+       LEFT VISUAL PANEL
+    ═══════════════════════════════ */
+    .visual {
+      position: relative; overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 34px;
+      background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
+      box-shadow: var(--shadow);
+      min-height: 650px;
+    }
+    .visual::before {
+      content: "";
+      position: absolute; inset: 0;
+      background:
+        radial-gradient(circle at 25% 15%, rgba(255,59,47,.10), transparent 25%),
+        radial-gradient(circle at 80% 80%, rgba(255,124,42,.08), transparent 22%);
+      pointer-events: none;
+    }
+
+    .visual-inner {
+      position: relative; height: 100%;
+      padding: 36px;
+      display: flex; flex-direction: column;
+      justify-content: space-between;
+    }
+
+    /* brand chip */
+    .brand-chip {
+      display: inline-flex; align-items: center; gap: 10px;
+      width: max-content;
+      padding: 10px 16px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,59,47,.3);
+      background: rgba(255,59,47,.08);
+      backdrop-filter: blur(12px);
+      font-size: .86rem; color: #ffd5d0;
+    }
+    .brand-dot {
+      width: 10px; height: 10px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--orange), var(--red));
+      box-shadow: 0 0 14px rgba(255,59,47,.9);
+      animation: pulse 2.1s infinite;
+    }
+    @keyframes pulse {
+      0%,100%{ transform:scale(1); opacity:1; }
+      50%{ transform:scale(1.35); opacity:.6; }
+    }
+
+    /* headline */
+    .headline { max-width: 540px; margin-top: 22px; }
+    .headline h1 {
+      margin: 0;
+      font-size: clamp(2.4rem, 3.8vw, 4.2rem);
+      line-height: .97; letter-spacing: -.05em; font-weight: 800;
+    }
+    .headline .accent {
+      background: linear-gradient(90deg, #ffffff, var(--red3), var(--orange));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    /* ── FIRE EXTINGUISHER SVG SCENE ── */
+    .fire-scene {
+      margin-top: 28px;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      gap: 32px;
+      padding: 10px 0 0;
+    }
+
+    /* Single extinguisher */
+    .ext-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+    .ext-label {
+      font-size: .72rem;
+      font-weight: 600;
+      letter-spacing: .07em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .ext-label.ok  { color: #4ddd98; }
+    .ext-label.due { color: var(--orange); }
+    .ext-label.fail{ color: var(--red3); }
+
+    /* SVG extinguisher inline — drawn via CSS */
+    .ext {
+      width: 64px; /* scale handle */
+      position: relative;
+    }
+    .ext svg { display: block; width: 100%; height: auto; }
+
+    /* flame animation above the failed one */
+    .flame-wrap {
+      display: flex; justify-content: center;
+      margin-bottom: 4px;
+      animation: flame-sway 1.4s ease-in-out infinite alternate;
+    }
+    @keyframes flame-sway {
+      from { transform: translateX(-3px) scaleY(.95); }
+      to   { transform: translateX(3px)  scaleY(1.05); }
+    }
+
+    /* scan-line row */
+    .scan-row {
+      display: flex; align-items: center; gap: 10px;
+      margin-top: 28px;
+    }
+    .scan-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--red); box-shadow: 0 0 10px var(--red);
+      animation: pulse 1.5s infinite;
+    }
+    .scan-line-bg {
+      flex: 1; height: 3px; border-radius: 3px;
+      background: rgba(255,255,255,.07);
+      position: relative; overflow: hidden;
+    }
+    .scan-line-bg::after {
+      content: "";
+      position: absolute; top: 0; left: -40%; width: 40%; height: 100%;
+      background: linear-gradient(90deg, transparent, var(--red3), transparent);
+      animation: scan-move 2s linear infinite;
+    }
+    @keyframes scan-move {
+      to { left: 140%; }
+    }
+    .scan-text {
+      font-size: .78rem; font-weight: 600; color: #ffa090;
+      letter-spacing: .05em; text-transform: uppercase;
+    }
+
+    /* status mini-cards row */
+    .status-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 24px;
+    }
+    .status-mini {
+      padding: 14px 12px;
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,.07);
+      background: rgba(255,255,255,.04);
+      backdrop-filter: blur(12px);
+      text-align: center;
+    }
+    .status-mini .sn { font-size: 1.5rem; font-weight: 800; letter-spacing: -.04em; }
+    .status-mini .sl { font-size: .7rem; font-weight: 600; color: var(--muted); letter-spacing: .06em; text-transform: uppercase; margin-top: 3px; }
+    .status-mini.ok  .sn { color: #4ddd98; text-shadow: 0 0 14px rgba(77,221,152,.5); }
+    .status-mini.due .sn { color: var(--orange); text-shadow: 0 0 14px rgba(255,124,42,.5); }
+    .status-mini.fail .sn{ color: var(--red3); text-shadow: 0 0 14px rgba(255,107,91,.5); }
+
+    /* bottom tagline */
+    .visual-footer {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-top: 20px;
+    }
+    .vf-text {
+      font-size: .8rem; color: var(--muted); line-height: 1.5;
+    }
+    .vf-badge {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 8px 14px; border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.09);
+      background: rgba(255,255,255,.04);
+      font-size: .78rem; font-weight: 600; color: #ffd5d0;
+    }
+
+    /* ═══════════════════════════════
+       RIGHT LOGIN PANEL
+    ═══════════════════════════════ */
+    .login-panel {
+      position: relative; overflow: hidden;
+      border-radius: 34px;
+      border: 1px solid var(--line);
+      background: linear-gradient(180deg, rgba(255,255,255,.09), rgba(255,255,255,.04));
+      backdrop-filter: blur(18px);
+      box-shadow: var(--shadow);
+      padding: 36px 32px;
+      display: flex; flex-direction: column; justify-content: center;
+    }
+    /* gradient border highlight */
+    .login-panel::before {
+      content: ""; position: absolute; inset: -1px;
+      border-radius: 34px; padding: 1px;
+      background: linear-gradient(145deg, rgba(255,59,47,.5), rgba(255,255,255,.02), rgba(255,124,42,.35));
+      -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      -webkit-mask-composite: xor; mask-composite: exclude;
+      pointer-events: none;
+    }
+
+    .top {
+      display: flex; align-items: center; gap: 16px;
+      margin-bottom: 28px;
+    }
+    .logo {
+      width: 66px; height: 66px; border-radius: 22px;
+      display: grid; place-items: center; font-size: 1.9rem;
+      background: linear-gradient(135deg, var(--red), var(--red2));
+      box-shadow: 0 18px 40px rgba(200,32,15,.38);
+      flex: 0 0 auto;
+    }
+    .top h2 { margin:0; font-size:1.55rem; letter-spacing:-.03em; font-weight:700; }
+    .top p  { margin:5px 0 0; color:var(--muted); font-size:.9rem; }
+
+    .notice {
+      display: none;
+      margin-bottom: 16px; padding: 13px 14px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,100,100,.35);
+      background: rgba(255,80,80,.08);
+      color: #ffd8d8; font-size: .9rem;
+    }
+
+    .field { margin-bottom: 16px; }
+    .field label {
+      display: block; margin-bottom: 8px;
+      font-size: .9rem; font-weight: 600; color: #dceee8;
+    }
+    .input-wrap { position: relative; }
+    .input-wrap input {
+      width: 100%; height: 58px;
+      border-radius: 18px; border: 1px solid var(--line);
+      padding: 0 18px;
+      background: rgba(0,0,0,.35);
+      color: var(--text); font: inherit; outline: none;
+      transition: .2s ease;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.03);
+    }
+    .input-wrap input::placeholder { color: rgba(255,255,255,.28); }
+    .input-wrap input:focus {
+      border-color: rgba(255,90,60,.55);
+      box-shadow: 0 0 0 4px rgba(255,59,47,.10), inset 0 1px 0 rgba(255,255,255,.03);
+      transform: translateY(-1px);
+    }
+
+    .submit-btn {
+      width: 100%; height: 58px; margin-top: 10px;
+      border: none; border-radius: 18px; cursor: pointer;
+      font: inherit; font-weight: 800; color: #fff;
+      letter-spacing: .01em;
+      background: linear-gradient(135deg, var(--red), var(--red2));
+      box-shadow: 0 20px 42px rgba(200,32,15,.35);
+      transition: .22s ease;
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+    }
+    .submit-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 26px 50px rgba(200,32,15,.42);
+    }
+    .btn-icon { font-size: 1.1rem; }
+
+    .bottom-mark {
+      margin-top: 20px; padding-top: 16px;
+      border-top: 1px solid rgba(255,255,255,.07);
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px; color: var(--muted); font-size: .82rem;
+    }
+    .secure-pill {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 7px 12px; border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.08);
+      background: rgba(255,255,255,.04);
+      color: #ffd5d0; font-size: .8rem; font-weight: 600;
+    }
+    .secure-pill::before { content: "🔒"; font-size: .85rem; }
+
+    /* ── responsive ── */
+    @media (max-width:980px){
+      body{ overflow:auto; }
+      .shell{ grid-template-columns:1fr; }
+      .visual{ min-height:auto; }
+      .headline h1{ font-size:2.4rem; }
+      .fire-scene{ gap:20px; }
+      .ext{ width:52px; }
+    }
+    @media (max-width:640px){
+      .stage{ padding:14px; }
+      .visual-inner, .login-panel{ padding:22px 18px; }
+      .fire-scene{ gap:14px; }
+      .ext{ width:44px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="grid-overlay"></div>
+
+  <div class="stage">
+    <div class="shell">
+
+      <!-- ═══════ LEFT VISUAL ═══════ -->
+      <section class="visual">
+        <div class="visual-inner">
+          <div>
+            <div class="brand-chip">
+              <span class="brand-dot"></span>
+              AHM Fire Inspection Portal
+            </div>
+
+            <div class="headline">
+              <h1>Fire Safety<br><span class="accent">Inspection</span><br>System</h1>
+            </div>
+
+            <!-- ── FIRE EXTINGUISHER GRAPHIC SCENE ── -->
+            <div class="fire-scene">
+
+              <!-- Extinguisher 1 — OK/Checked -->
+              <div class="ext-wrap">
+                <div class="ext">
+                  <svg viewBox="0 0 72 180" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Body -->
+                    <rect x="16" y="42" width="40" height="110" rx="20" fill="#c8222a"/>
+                    <!-- Top dome -->
+                    <ellipse cx="36" cy="42" rx="20" ry="8" fill="#a01820"/>
+                    <!-- Bottom cap -->
+                    <ellipse cx="36" cy="152" rx="20" ry="7" fill="#a01820"/>
+                    <!-- White band -->
+                    <rect x="16" y="95" width="40" height="12" rx="2" fill="rgba(255,255,255,.2)"/>
+                    <!-- Label area -->
+                    <rect x="19" y="108" width="34" height="32" rx="4" fill="rgba(255,255,255,.12)"/>
+                    <!-- Label text lines -->
+                    <rect x="22" y="113" width="28" height="2" rx="1" fill="rgba(255,255,255,.5)"/>
+                    <rect x="22" y="118" width="22" height="2" rx="1" fill="rgba(255,255,255,.35)"/>
+                    <rect x="22" y="123" width="26" height="2" rx="1" fill="rgba(255,255,255,.35)"/>
+                    <!-- Valve / head -->
+                    <rect x="29" y="24" width="14" height="18" rx="5" fill="#888"/>
+                    <rect x="25" y="20" width="22" height="6" rx="3" fill="#999"/>
+                    <!-- Handle -->
+                    <rect x="48" y="18" width="16" height="4" rx="2" fill="#777"/>
+                    <!-- Hose -->
+                    <path d="M16 60 Q6 70 8 90 Q10 108 18 112" stroke="#555" stroke-width="4" fill="none" stroke-linecap="round"/>
+                    <!-- Nozzle -->
+                    <rect x="4" y="108" width="16" height="6" rx="3" fill="#444"/>
+                    <!-- Pressure gauge -->
+                    <circle cx="36" cy="78" r="8" fill="#1a1a1a" stroke="rgba(255,255,255,.2)" stroke-width="1"/>
+                    <circle cx="36" cy="78" r="6" fill="#222"/>
+                    <!-- Gauge needle — pointing to green zone (OK) -->
+                    <line x1="36" y1="78" x2="40" y2="73" stroke="#4ddd98" stroke-width="1.5" stroke-linecap="round"/>
+                    <!-- Checkmark -->
+                    <circle cx="55" cy="55" r="9" fill="#4ddd98" opacity=".9"/>
+                    <polyline points="51,55 54,58 59,51" stroke="white" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                    <!-- Stand base -->
+                    <rect x="24" y="155" width="24" height="8" rx="4" fill="#7a1218"/>
+                    <rect x="20" y="161" width="32" height="5" rx="2.5" fill="#631018"/>
+                  </svg>
+                </div>
+                <span class="ext-label ok">✓ Checked</span>
+              </div>
+
+              <!-- Extinguisher 2 — Due / Warning -->
+              <div class="ext-wrap">
+                <div class="ext" style="width:76px">
+                  <svg viewBox="0 0 72 180" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="16" y="42" width="40" height="110" rx="20" fill="#b8a020"/>
+                    <ellipse cx="36" cy="42" rx="20" ry="8" fill="#957e14"/>
+                    <ellipse cx="36" cy="152" rx="20" ry="7" fill="#957e14"/>
+                    <rect x="16" y="95" width="40" height="12" rx="2" fill="rgba(255,255,255,.18)"/>
+                    <rect x="19" y="108" width="34" height="32" rx="4" fill="rgba(255,255,255,.1)"/>
+                    <rect x="22" y="113" width="28" height="2" rx="1" fill="rgba(255,255,255,.45)"/>
+                    <rect x="22" y="118" width="22" height="2" rx="1" fill="rgba(255,255,255,.3)"/>
+                    <rect x="22" y="123" width="26" height="2" rx="1" fill="rgba(255,255,255,.3)"/>
+                    <rect x="29" y="24" width="14" height="18" rx="5" fill="#888"/>
+                    <rect x="25" y="20" width="22" height="6" rx="3" fill="#999"/>
+                    <rect x="48" y="18" width="16" height="4" rx="2" fill="#777"/>
+                    <path d="M16 60 Q6 70 8 90 Q10 108 18 112" stroke="#555" stroke-width="4" fill="none" stroke-linecap="round"/>
+                    <rect x="4" y="108" width="16" height="6" rx="3" fill="#444"/>
+                    <circle cx="36" cy="78" r="8" fill="#1a1a1a" stroke="rgba(255,255,255,.2)" stroke-width="1"/>
+                    <circle cx="36" cy="78" r="6" fill="#222"/>
+                    <!-- Gauge needle — mid/warning zone -->
+                    <line x1="36" y1="78" x2="36" y2="72" stroke="#ffb830" stroke-width="1.5" stroke-linecap="round"/>
+                    <!-- Warning badge -->
+                    <polygon points="55,46 63,60 47,60" fill="#ffb830" opacity=".9"/>
+                    <text x="55" y="58" text-anchor="middle" font-size="9" font-weight="900" fill="#1a1200">!</text>
+                    <rect x="24" y="155" width="24" height="8" rx="4" fill="#7a6410"/>
+                    <rect x="20" y="161" width="32" height="5" rx="2.5" fill="#63520d"/>
+                  </svg>
+                </div>
+                <span class="ext-label due">⚠ Due</span>
+              </div>
+
+              <!-- Extinguisher 3 — Failed / with flame -->
+              <div class="ext-wrap">
+                <!-- flame above -->
+                <div class="flame-wrap">
+                  <svg width="40" height="52" viewBox="0 0 40 52" xmlns="http://www.w3.org/2000/svg">
+                    <!-- outer flame -->
+                    <path d="M20 2 C12 10 6 18 8 28 C10 38 14 44 20 50 C26 44 30 38 32 28 C34 18 28 10 20 2Z" fill="url(#flameGrad1)"/>
+                    <!-- inner flame -->
+                    <path d="M20 14 C16 20 14 26 16 34 C17 38 18.5 42 20 46 C21.5 42 23 38 24 34 C26 26 24 20 20 14Z" fill="url(#flameGrad2)"/>
+                    <!-- core -->
+                    <path d="M20 28 C18 30 18 34 20 38 C22 34 22 30 20 28Z" fill="#fff9c4" opacity=".9"/>
+                    <defs>
+                      <linearGradient id="flameGrad1" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="#ff3b2f"/>
+                        <stop offset="55%" stop-color="#ff7c2a"/>
+                        <stop offset="100%" stop-color="#ffcc00"/>
+                      </linearGradient>
+                      <linearGradient id="flameGrad2" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="#ff7c2a"/>
+                        <stop offset="100%" stop-color="#ffcc00"/>
+                      </linearGradient>
+                    </defs>
+                  </svg>
+                </div>
+                <div class="ext">
+                  <svg viewBox="0 0 72 180" xmlns="http://www.w3.org/2000/svg">
+                    <!-- body slightly darker/worn -->
+                    <rect x="16" y="42" width="40" height="110" rx="20" fill="#8a1a1a"/>
+                    <ellipse cx="36" cy="42" rx="20" ry="8" fill="#6e1010"/>
+                    <ellipse cx="36" cy="152" rx="20" ry="7" fill="#6e1010"/>
+                    <rect x="16" y="95" width="40" height="12" rx="2" fill="rgba(255,100,100,.15)"/>
+                    <rect x="19" y="108" width="34" height="32" rx="4" fill="rgba(255,80,80,.08)"/>
+                    <rect x="22" y="113" width="28" height="2" rx="1" fill="rgba(255,150,150,.4)"/>
+                    <rect x="22" y="118" width="22" height="2" rx="1" fill="rgba(255,150,150,.28)"/>
+                    <rect x="22" y="123" width="26" height="2" rx="1" fill="rgba(255,150,150,.28)"/>
+                    <rect x="29" y="24" width="14" height="18" rx="5" fill="#666"/>
+                    <rect x="25" y="20" width="22" height="6" rx="3" fill="#777"/>
+                    <rect x="48" y="18" width="16" height="4" rx="2" fill="#555"/>
+                    <path d="M16 60 Q6 70 8 90 Q10 108 18 112" stroke="#444" stroke-width="4" fill="none" stroke-linecap="round"/>
+                    <rect x="4" y="108" width="16" height="6" rx="3" fill="#333"/>
+                    <circle cx="36" cy="78" r="8" fill="#1a1a1a" stroke="rgba(255,100,100,.3)" stroke-width="1"/>
+                    <circle cx="36" cy="78" r="6" fill="#1a0a0a"/>
+                    <!-- Gauge needle — empty/red zone -->
+                    <line x1="36" y1="78" x2="32" y2="73" stroke="#ff3b2f" stroke-width="1.5" stroke-linecap="round"/>
+                    <!-- X badge -->
+                    <circle cx="55" cy="55" r="9" fill="#ff3b2f" opacity=".9"/>
+                    <line x1="51" y1="51" x2="59" y2="59" stroke="white" stroke-width="2" stroke-linecap="round"/>
+                    <line x1="59" y1="51" x2="51" y2="59" stroke="white" stroke-width="2" stroke-linecap="round"/>
+                    <rect x="24" y="155" width="24" height="8" rx="4" fill="#4a0a0a"/>
+                    <rect x="20" y="161" width="32" height="5" rx="2.5" fill="#3d0808"/>
+                  </svg>
+                </div>
+                <span class="ext-label fail">✕ Failed</span>
+              </div>
+
+            </div>
+            <!-- end fire-scene -->
+
+            <!-- scan line -->
+            <div class="scan-row">
+              <div class="scan-dot"></div>
+              <div class="scan-line-bg"></div>
+              <span class="scan-text">Scanning Equipment</span>
+            </div>
+
+            <!-- status mini cards -->
+            <div class="status-row">
+              <div class="status-mini ok">
+                <div class="sn"></div>
+                <div class="sl"></div>
+              </div>
+              <div class="status-mini due">
+                <div class="sn"></div>
+                <div class="sl"></div>
+              </div>
+              <div class="status-mini fail">
+                <div class="sn"></div>
+                <div class="sl"></div>
+              </div>
+            </div>
+
+          </div><!-- /top block -->
+
+          <div class="visual-footer">
+            <div class="vf-text">
+              AHM Fire Safety Division<br>
+              Monthly inspection cycle active
+            </div>
+            <div class="vf-badge">🔴 Live</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════ RIGHT LOGIN PANEL ═══════ -->
+      <section class="login-panel">
+        <div class="top">
+          <div class="logo">🧯</div>
+          <div>
+            <h2>Inspector Login</h2>
+            <p>Authorized access only</p>
+          </div>
+        </div>
+
+        <div id="loginNotice" class="notice"></div>
+
+        <form id="loginForm">
+          <div class="field">
+            <label for="inspectorId">Inspector ID</label>
+            <div class="input-wrap">
+              <input id="inspectorId" name="inspectorId" type="text"
+                     placeholder="Enter Inspector ID" required autocomplete="off"/>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="pin">PIN</label>
+            <div class="input-wrap">
+              <input id="pin" name="pin" type="password"
+                     placeholder="Enter PIN" required autocomplete="off"/>
+            </div>
+          </div>
+
+          <button class="submit-btn" type="submit">
+            <span class="btn-icon">🔐</span>
+            Login
+          </button>
+        </form>
+
+        <div class="bottom-mark">
+          <span>AHM Fire Extinguisher Inspection</span>
+          <span class="secure-pill">Secure Session</span>
+        </div>
+      </section>
+
+    </div>
+  </div>
+
+  <script src="assets/config.js"></script>
+  <script src="assets/app.js"></script>
+  <script>
+    const loginNotice = document.getElementById("loginNotice");
+    const observer = new MutationObserver(() => {
+      if (loginNotice.textContent.trim() !== "") {
+        loginNotice.style.display = "block";
+      }
+    });
+    observer.observe(loginNotice, { childList: true, subtree: true });
+  </script>
+</body>
+</html>
