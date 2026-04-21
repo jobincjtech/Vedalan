@@ -85,20 +85,25 @@ function renderDynamicQuestions(questions) {
   }).join("");
 }
 
+// ── SESSION FUNCTIONS (sessionStorage — clears on tab/browser close) ──
+
 function getSession() {
   try {
-    return JSON.parse(localStorage.getItem("fireInspectorSession") || "null");
+    return JSON.parse(sessionStorage.getItem("fireInspectorSession") || "null");
   } catch {
     return null;
   }
 }
 
 function saveSession(session) {
-  localStorage.setItem("fireInspectorSession", JSON.stringify(session));
+  // Also clear any old localStorage remnants from the previous version
+  localStorage.removeItem("fireInspectorSession");
+  sessionStorage.setItem("fireInspectorSession", JSON.stringify(session));
 }
 
 function clearSession() {
-  localStorage.removeItem("fireInspectorSession");
+  sessionStorage.removeItem("fireInspectorSession");
+  localStorage.removeItem("fireInspectorSession"); // clean up old storage too
 }
 
 function sessionValid(session) {
@@ -135,6 +140,10 @@ function setupLogoutButtons() {
 async function initLoginPage() {
   const form = byId("loginForm");
   if (!form) return;
+
+  // Always clear any existing session when login page loads
+  // This forces fresh credentials every time the login page is opened
+  clearSession();
 
   form.addEventListener("submit", async e => {
     e.preventDefault();
