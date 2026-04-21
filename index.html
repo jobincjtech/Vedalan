@@ -3,497 +3,965 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Inspection Dashboard</title>
+  <title>AHM Fire Inspection Dashboard</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
-    /* ═══════════════════════════════════════════════
-       DESIGN SYSTEM — matches login page exactly
-    ═══════════════════════════════════════════════ */
-    :root{
-      --bg:#0a0f0e;
-      --bg2:#0e1a18;
-      --line:rgba(255,255,255,.10);
-      --line2:rgba(255,255,255,.06);
-      --text:#edf8f4;
-      --muted:#8fb0a8;
-      --muted2:#5a8078;
-      --red:#ff3b2f;
-      --red2:#c9200f;
-      --red3:#ff6b5b;
-      --orange:#ff7c2a;
-      --green:#4ddd98;
-      --green2:#1db86a;
-      --shadow:0 24px 60px rgba(0,0,0,.50);
-      --card-bg:linear-gradient(180deg,rgba(255,255,255,.065),rgba(255,255,255,.025));
-      --card-border:1px solid var(--line);
-      --r:20px;
-      --r-sm:14px;
-    }
+  /* ══════════════════════════════════════════════════════
+     DESIGN SYSTEM
+     Background: Clean slate-dark (#0f1117) — professional,
+     not too warm/red so status colours pop clearly.
+     Status colours:
+       Completed → emerald green  #22c55e
+       Pending   → amber          #f59e0b
+       Failed    → crimson        #ef4444
+  ══════════════════════════════════════════════════════ */
+  :root{
+    --bg:         #0f1117;
+    --bg2:        #13161f;
+    --surface:    rgba(255,255,255,.055);
+    --surface2:   rgba(255,255,255,.03);
+    --line:       rgba(255,255,255,.09);
+    --line2:      rgba(255,255,255,.05);
+    --text:       #f1f5f9;
+    --text2:      #94a3b8;
+    --text3:      #475569;
+    --accent:     #f97316;   /* orange — brand accent */
+    --accent2:    #ea580c;
+    --accent-g:   rgba(249,115,22,.12);
 
-    *{ box-sizing:border-box; }
-    html,body{ margin:0; font-family:Inter,'Segoe UI',Arial,sans-serif; color:var(--text); }
+    /* ── status palette (vivid, distinct) ── */
+    --c-ok:       #22c55e;
+    --c-ok-bg:    rgba(34,197,94,.10);
+    --c-ok-bdr:   rgba(34,197,94,.30);
+    --c-ok-glow:  rgba(34,197,94,.20);
 
-    body{
-      background:
-        radial-gradient(circle at 12% 8%,  rgba(255,59,47,.13), transparent 26%),
-        radial-gradient(circle at 88% 90%, rgba(255,124,42,.09), transparent 24%),
-        radial-gradient(circle at 65% 5%,  rgba(200,15,0,.07),  transparent 20%),
-        linear-gradient(150deg,#0a0f0e 0%,#0e1a18 60%,#120d0d 100%);
-      min-height:100vh;
-      position:relative;
-    }
+    --c-pend:     #f59e0b;
+    --c-pend-bg:  rgba(245,158,11,.10);
+    --c-pend-bdr: rgba(245,158,11,.30);
+    --c-pend-glow:rgba(245,158,11,.20);
 
-    /* heat-glow orbs — same as login */
-    body::before,body::after{
-      content:""; position:fixed; border-radius:50%;
-      filter:blur(100px); opacity:.15; pointer-events:none;
-      animation:heatFloat 9s ease-in-out infinite;
-    }
-    body::before{ width:500px;height:500px;top:-160px;left:-130px;background:var(--red); }
-    body::after { width:400px;height:400px;right:-130px;bottom:-140px;background:var(--orange);animation-delay:3s; }
-    @keyframes heatFloat{ 0%,100%{transform:translate(0,0)} 50%{transform:translate(18px,16px)} }
+    --c-fail:     #ef4444;
+    --c-fail-bg:  rgba(239,68,68,.10);
+    --c-fail-bdr: rgba(239,68,68,.30);
+    --c-fail-glow:rgba(239,68,68,.20);
 
-    /* grid overlay */
-    .grid-overlay{
-      position:fixed; inset:0; pointer-events:none; z-index:0;
-      background-image:
-        linear-gradient(rgba(255,255,255,.022) 1px,transparent 1px),
-        linear-gradient(90deg,rgba(255,255,255,.022) 1px,transparent 1px);
-      background-size:36px 36px;
-      mask-image:linear-gradient(to bottom,rgba(0,0,0,.65),rgba(0,0,0,.08));
-    }
+    --c-total:    #818cf8;
+    --c-total-bg: rgba(129,140,248,.10);
 
-    /* ── page wrapper ── */
-    .container{
-      position:relative; z-index:1;
-      max-width:1380px; margin:0 auto;
-      padding:28px 28px 48px;
-    }
+    --r:    18px;
+    --r-sm: 12px;
+    --shadow: 0 4px 24px rgba(0,0,0,.40), 0 1px 3px rgba(0,0,0,.30);
+    --shadow-lg: 0 8px 40px rgba(0,0,0,.50);
+  }
 
-    /* ══════════════════════════════════
-       HERO / HEADER
-    ══════════════════════════════════ */
-    .hero{
-      display:flex; align-items:center; justify-content:space-between;
-      gap:20px; flex-wrap:wrap;
-      background:var(--card-bg);
-      border:var(--card-border);
-      border-radius:28px;
-      padding:22px 28px;
-      box-shadow:var(--shadow);
-      position:relative; overflow:hidden;
-      margin-bottom:20px;
-    }
-    /* top accent line — same gradient as login */
-    .hero::before{
-      content:""; position:absolute; top:0;left:0;right:0;height:2px;
-      background:linear-gradient(90deg,
-        transparent 2%,var(--red3) 25%,var(--orange) 55%,var(--red3) 80%,transparent 98%);
-      box-shadow:0 0 12px rgba(255,59,47,.5);
-    }
+  *, *::before, *::after { box-sizing:border-box; }
+  html { scroll-behavior:smooth; }
+  html, body { margin:0; height:100%; }
 
-    .brand{
-      display:flex; align-items:center; gap:16px;
-    }
-    .logo{
-      width:58px;height:58px;border-radius:18px;
-      display:grid;place-items:center;font-size:1.7rem;flex:0 0 auto;
-      background:linear-gradient(135deg,var(--red),var(--red2));
-      box-shadow:0 12px 30px rgba(200,32,15,.35);
-    }
-    .brand h1{
-      margin:0;font-size:1.3rem;font-weight:800;letter-spacing:-.03em;
-    }
-    .brand p{ margin:4px 0 0;color:var(--muted);font-size:.85rem; }
+  body {
+    font-family: Inter, 'Segoe UI', sans-serif;
+    font-size: 14px;
+    color: var(--text);
+    background: var(--bg);
+    min-height: 100vh;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
 
-    .actions{
-      display:flex;align-items:center;gap:10px;flex-wrap:wrap;
-    }
+  /* ── subtle top-of-page line ── */
+  body::before {
+    content:""; position:fixed; top:0; left:0; right:0; height:2px; z-index:999;
+    background: linear-gradient(90deg, transparent 5%, var(--accent) 35%, #fbbf24 65%, transparent 95%);
+    box-shadow: 0 0 12px rgba(249,115,22,.5);
+  }
 
-    /* ── tags / chips ── */
-    .tag{
-      padding:7px 14px;border-radius:999px;
-      border:1px solid var(--line);
-      background:rgba(255,255,255,.05);
-      font-size:.82rem;font-weight:600;color:#dce8ff;
-    }
+  /* ── background noise texture ── */
+  body::after {
+    content:""; position:fixed; inset:0; z-index:0; pointer-events:none;
+    background-image:
+      radial-gradient(circle at 20% 20%, rgba(249,115,22,.06) 0%, transparent 40%),
+      radial-gradient(circle at 80% 80%, rgba(129,140,248,.05) 0%, transparent 40%);
+  }
 
-    /* ── buttons ── */
-    .btn{
-      display:inline-flex;align-items:center;gap:7px;
-      padding:9px 18px;border-radius:12px;
-      font:600 .84rem/1 Inter,sans-serif;
-      cursor:pointer;border:none;text-decoration:none;
-      transition:.18s ease;
-    }
-    .btn:hover{ transform:translateY(-1px); }
+  /* ── dot grid ── */
+  .grid-overlay {
+    position:fixed; inset:0; z-index:0; pointer-events:none;
+    background-image: radial-gradient(rgba(255,255,255,.06) 1px, transparent 1px);
+    background-size: 28px 28px;
+    mask-image: linear-gradient(to bottom, rgba(0,0,0,.5) 0%, rgba(0,0,0,.05) 100%);
+  }
 
-    .btn.primary{
-      background:linear-gradient(135deg,var(--red),var(--red2));
-      color:#fff;
-      box-shadow:0 10px 24px rgba(200,32,15,.3);
-    }
-    .btn.primary:hover{ box-shadow:0 14px 30px rgba(200,32,15,.4); }
+  .container {
+    position:relative; z-index:1;
+    max-width:1420px; margin:0 auto;
+    padding:20px 20px 60px;
+  }
 
-    .btn.secondary{
-      background:rgba(255,255,255,.07);
-      border:1px solid var(--line);
-      color:var(--text);
-    }
-    .btn.secondary:hover{ background:rgba(255,255,255,.12); }
+  /* ══════════════════════════════════════
+     LOADING OVERLAY — shown while data loads
+  ══════════════════════════════════════ */
+  #loadingOverlay {
+    position:fixed; inset:0; z-index:9000;
+    background: var(--bg);
+    display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:18px;
+    transition: opacity .4s ease, visibility .4s ease;
+  }
+  #loadingOverlay.hidden {
+    opacity:0; visibility:hidden; pointer-events:none;
+  }
+  .loader-ring {
+    width:52px; height:52px; border-radius:50%;
+    border:3px solid var(--line);
+    border-top-color: var(--accent);
+    animation: spin .8s linear infinite;
+  }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  .loader-text {
+    font-size:.85rem; font-weight:600; color:var(--text2);
+    letter-spacing:.05em; text-transform:uppercase;
+  }
 
-    .btn.good{
-      background:rgba(77,221,152,.12);
-      border:1px solid rgba(77,221,152,.3);
-      color:var(--green);
-    }
-    .btn.good:hover{ background:rgba(77,221,152,.2); }
+  /* ══════════════════════════════════════
+     SKELETON LOADER
+  ══════════════════════════════════════ */
+  .skeleton {
+    background: linear-gradient(90deg,
+      rgba(255,255,255,.05) 25%,
+      rgba(255,255,255,.09) 50%,
+      rgba(255,255,255,.05) 75%);
+    background-size:200% 100%;
+    animation: shimmer 1.6s ease-in-out infinite;
+    border-radius:6px;
+  }
+  @keyframes shimmer {
+    0%  { background-position:200% 0; }
+    100%{ background-position:-200% 0; }
+  }
+  .skeleton-row td {
+    padding:14px 14px;
+    pointer-events:none;
+  }
+  .skeleton-cell {
+    height:14px; border-radius:4px;
+    background:linear-gradient(90deg,
+      rgba(255,255,255,.06) 25%,
+      rgba(255,255,255,.10) 50%,
+      rgba(255,255,255,.06) 75%);
+    background-size:200% 100%;
+    animation:shimmer 1.6s ease-in-out infinite;
+  }
 
-    /* ── notice ── */
-    .notice{
-      padding:13px 16px;border-radius:var(--r-sm);
-      border:1px solid rgba(255,100,100,.3);
-      background:rgba(255,80,80,.07);
-      color:#ffd8d8;font-size:.88rem;margin-bottom:16px;
-    }
-    .notice.hidden{ display:none; }
+  /* ══════════════════════════════════════
+     HERO HEADER
+  ══════════════════════════════════════ */
+  .hero {
+    display:flex; align-items:center; justify-content:space-between;
+    gap:16px; flex-wrap:wrap;
+    background: var(--surface);
+    border:1px solid var(--line);
+    border-radius:var(--r);
+    padding:18px 24px;
+    box-shadow:var(--shadow);
+    margin-bottom:16px;
+    position:relative; overflow:hidden;
+    backdrop-filter:blur(12px);
+  }
+  /* left accent strip */
+  .hero::after {
+    content:""; position:absolute; left:0; top:16px; bottom:16px; width:3px;
+    background:linear-gradient(180deg, var(--accent), #fbbf24);
+    border-radius:0 2px 2px 0;
+    box-shadow:0 0 12px rgba(249,115,22,.4);
+  }
 
-    /* ══════════════════════════════════
-       FILTER PANEL  (card.panel + topbar)
-    ══════════════════════════════════ */
-    .card{
-      background:var(--card-bg);
-      border:var(--card-border);
-      border-radius:var(--r);
-      box-shadow:var(--shadow);
-      position:relative; overflow:hidden;
-    }
-    /* subtle red glow at card top-left */
-    .card::after{
-      content:""; position:absolute;top:-60px;left:-60px;
-      width:160px;height:160px;border-radius:50%;
-      background:radial-gradient(circle,rgba(255,59,47,.07),transparent 70%);
-      pointer-events:none;
-    }
+  .brand { display:flex; align-items:center; gap:14px; padding-left:12px; }
+  .logo {
+    width:52px; height:52px; border-radius:14px; flex:0 0 auto;
+    display:grid; place-items:center; font-size:1.55rem;
+    background:linear-gradient(135deg, var(--accent), var(--accent2));
+    box-shadow:0 8px 20px rgba(249,115,22,.3);
+  }
+  .brand h1 {
+    margin:0; font-size:1.15rem; font-weight:800; letter-spacing:-.02em;
+    color:var(--text);
+  }
+  .brand p { margin:3px 0 0; color:var(--text2); font-size:.8rem; }
 
-    .panel{ padding:20px 24px; }
+  .actions { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
 
-    .topbar{
-      display:flex;align-items:flex-start;
-      justify-content:space-between;
-      gap:16px;flex-wrap:wrap;
-    }
+  /* ── user chip ── */
+  #userChip.tag {
+    display:inline-flex; align-items:center; gap:6px;
+    padding:6px 12px; border-radius:999px;
+    border:1px solid var(--line);
+    background:rgba(255,255,255,.05);
+    font-size:.8rem; font-weight:600; color:var(--text2);
+  }
+  #userChip.tag::before {
+    content:""; width:7px; height:7px; border-radius:50%;
+    background:var(--c-ok); box-shadow:0 0 6px var(--c-ok);
+    animation:pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%,100%{opacity:1;transform:scale(1)}
+    50%{opacity:.5;transform:scale(1.2)}
+  }
 
-    .section-title{
-      display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;
-    }
-    .section-title h2{
-      margin:0;font-size:1.05rem;font-weight:700;letter-spacing:-.02em;
-    }
-    .section-title .small{
-      font-size:.8rem;color:var(--muted);
-    }
+  /* ── buttons ── */
+  .btn {
+    display:inline-flex; align-items:center; gap:6px;
+    padding:8px 16px; border-radius:10px;
+    font:600 .82rem/1 Inter,sans-serif;
+    cursor:pointer; border:none; text-decoration:none;
+    transition:.16s ease; white-space:nowrap;
+  }
+  .btn:hover { transform:translateY(-1px); }
+  .btn:active { transform:translateY(0); }
 
-    .searchbar{
-      display:flex;align-items:center;
-      gap:9px;flex-wrap:wrap;margin-top:14px;
-    }
+  .btn.secondary {
+    background:rgba(255,255,255,.06);
+    border:1px solid var(--line);
+    color:var(--text2);
+  }
+  .btn.secondary:hover { background:rgba(255,255,255,.10); color:var(--text); }
 
-    /* inputs & selects in filter bar */
-    .searchbar input,
-    .searchbar select{
-      height:40px;border-radius:11px;
-      border:1px solid var(--line);
-      background:rgba(0,0,0,.35);
-      color:var(--text);font:inherit;font-size:.84rem;
-      padding:0 13px;outline:none;
-      transition:.18s ease;
-      min-width:0;
-    }
-    .searchbar input[type=month]{ min-width:150px; }
-    .searchbar select{ min-width:150px; }
-    .searchbar input[type=text]{ min-width:220px; }
-    .searchbar input:focus,
-    .searchbar select:focus{
-      border-color:rgba(255,90,60,.5);
-      box-shadow:0 0 0 3px rgba(255,59,47,.09);
-    }
-    .searchbar select option{ background:#141f1c; }
-    .searchbar button{
-      height:40px;padding:0 16px;
-      border-radius:11px;cursor:pointer;
-      font:600 .84rem/1 Inter,sans-serif;
-      border:1px solid var(--line);
-      background:rgba(255,255,255,.07);
-      color:var(--text);transition:.18s ease;
-    }
-    .searchbar button:hover{ background:rgba(255,255,255,.13); }
+  .btn.good {
+    background:var(--c-ok-bg);
+    border:1px solid var(--c-ok-bdr);
+    color:var(--c-ok);
+  }
+  .btn.good:hover { background:rgba(34,197,94,.18); }
 
-    /* ══════════════════════════════════
-       KPI GRID
-    ══════════════════════════════════ */
-    .grid{ display:grid;gap:14px; }
-    .grid-4{ grid-template-columns:repeat(4,1fr); }
-    .grid-2{ grid-template-columns:repeat(2,1fr); }
+  .btn.primary {
+    background:linear-gradient(135deg,var(--accent),var(--accent2));
+    color:#fff;
+    box-shadow:0 6px 16px rgba(249,115,22,.25);
+  }
+  .btn.primary:hover { box-shadow:0 8px 22px rgba(249,115,22,.35); }
 
-    .kpi{
-      padding:20px 22px;
-      display:flex;flex-direction:column;gap:6px;
-    }
-    .kpi .label{
-      font-size:.75rem;font-weight:600;text-transform:uppercase;
-      letter-spacing:.07em;color:var(--muted);
-    }
-    .kpi .value{
-      font-size:2.4rem;font-weight:800;letter-spacing:-.05em;
-      line-height:1;color:var(--text);
-    }
+  /* ── notice ── */
+  .notice {
+    padding:12px 16px; border-radius:var(--r-sm);
+    border:1px solid var(--c-fail-bdr);
+    background:var(--c-fail-bg);
+    color:#fecaca; font-size:.88rem;
+    margin-bottom:14px;
+    display:flex; align-items:center; gap:8px;
+  }
+  .notice::before { content:"⚠"; font-size:1rem; }
+  .notice.hidden { display:none; }
 
-    /* coloured KPI accents via inline style overrides */
-    .kpi[data-type=total]  .value{ color:var(--text); }
-    .kpi[data-type=done]   .value{ color:var(--green); text-shadow:0 0 18px rgba(77,221,152,.4); }
-    .kpi[data-type=pending].value{ color:var(--orange);text-shadow:0 0 18px rgba(255,124,42,.4); }
-    .kpi[data-type=failed] .value{ color:var(--red3);  text-shadow:0 0 18px rgba(255,107,91,.4); }
+  /* ══════════════════════════════════════
+     CARDS
+  ══════════════════════════════════════ */
+  .card {
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:var(--r);
+    box-shadow:var(--shadow);
+    position:relative; overflow:hidden;
+    backdrop-filter:blur(8px);
+  }
+  .panel { padding:18px 22px; }
 
-    /* accent bar at card bottom */
-    .kpi::before{
-      content:""; position:absolute; bottom:0;left:0;right:0;height:2px;
-      border-radius:0 0 var(--r) var(--r);
-      opacity:.55;
-    }
-    .kpi[data-type=total]::before   { background:var(--muted2); }
-    .kpi[data-type=done]::before    { background:var(--green); box-shadow:0 0 8px rgba(77,221,152,.5); }
-    .kpi[data-type=pending]::before { background:var(--orange);box-shadow:0 0 8px rgba(255,124,42,.5); }
-    .kpi[data-type=failed]::before  { background:var(--red);   box-shadow:0 0 8px rgba(255,59,47,.5); }
+  /* section headers inside cards */
+  .topbar {
+    display:flex; align-items:flex-start;
+    justify-content:space-between;
+    gap:14px; flex-wrap:wrap;
+  }
+  .section-title {
+    display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+  }
+  .section-title h2 {
+    margin:0; font-size:.95rem; font-weight:700;
+    letter-spacing:-.01em; color:var(--text);
+  }
+  .section-title .small {
+    font-size:.78rem; color:var(--text2);
+    background:rgba(255,255,255,.05);
+    padding:3px 9px; border-radius:999px;
+    border:1px solid var(--line);
+  }
 
-    /* ══════════════════════════════════
-       TABLE
-    ══════════════════════════════════ */
-    .table-wrap{
-      overflow-x:auto;margin-top:14px;
-      border-radius:var(--r-sm);
-      border:1px solid var(--line2);
-    }
-    table{
-      width:100%;border-collapse:collapse;
-      font-size:.84rem;
-    }
-    thead tr{
-      background:rgba(255,59,47,.07);
-      border-bottom:1px solid var(--line);
-    }
-    th{
-      padding:12px 14px;text-align:left;
-      font-size:.72rem;font-weight:700;
-      text-transform:uppercase;letter-spacing:.07em;
-      color:var(--muted);white-space:nowrap;
-    }
-    td{
-      padding:11px 14px;
-      border-bottom:1px solid var(--line2);
-      color:var(--text);vertical-align:middle;
-    }
-    tbody tr:last-child td{ border-bottom:none; }
-    tbody tr{
-      transition:background .14s;
-    }
-    tbody tr:hover{ background:rgba(255,255,255,.03); }
+  /* ── filter bar ── */
+  .searchbar {
+    display:flex; align-items:center;
+    gap:8px; flex-wrap:wrap; margin-top:12px;
+  }
+  .searchbar input,
+  .searchbar select {
+    height:38px; border-radius:10px;
+    border:1px solid var(--line);
+    background:rgba(0,0,0,.3);
+    color:var(--text); font:inherit; font-size:.82rem;
+    padding:0 12px; outline:none;
+    transition:.16s ease;
+  }
+  .searchbar input[type=month] { min-width:148px; }
+  .searchbar select             { min-width:148px; }
+  .searchbar input[type=text]   { min-width:210px; flex:1; }
+  .searchbar input:focus,
+  .searchbar select:focus {
+    border-color:rgba(249,115,22,.5);
+    box-shadow:0 0 0 3px rgba(249,115,22,.10);
+    background:rgba(0,0,0,.45);
+  }
+  .searchbar select option { background:#1a1f2e; }
+  .searchbar button {
+    height:38px; padding:0 15px;
+    border-radius:10px; cursor:pointer;
+    font:600 .82rem/1 Inter,sans-serif;
+    border:1px solid var(--line);
+    background:rgba(255,255,255,.06);
+    color:var(--text2); transition:.16s ease;
+    white-space:nowrap;
+  }
+  .searchbar button:hover {
+    background:rgba(255,255,255,.11); color:var(--text);
+  }
 
-    /* status badges inside table */
-    .badge{
-      display:inline-flex;align-items:center;gap:5px;
-      padding:4px 10px;border-radius:999px;
-      font-size:.75rem;font-weight:700;letter-spacing:.04em;
-      text-transform:uppercase;
-    }
-    .badge::before{ content:"";width:6px;height:6px;border-radius:50%; }
-    .badge.completed{
-      background:rgba(77,221,152,.12);color:var(--green);
-      border:1px solid rgba(77,221,152,.28);
-    }
-    .badge.completed::before{ background:var(--green);box-shadow:0 0 5px var(--green); }
-    .badge.pending{
-      background:rgba(255,124,42,.10);color:var(--orange);
-      border:1px solid rgba(255,124,42,.28);
-    }
-    .badge.pending::before{ background:var(--orange);box-shadow:0 0 5px var(--orange); }
-    .badge.failed{
-      background:rgba(255,59,47,.10);color:var(--red3);
-      border:1px solid rgba(255,59,47,.28);
-    }
-    .badge.failed::before{ background:var(--red3);box-shadow:0 0 5px var(--red3); }
+  /* active filter indicator */
+  .filter-active-badge {
+    display:none; align-items:center; gap:5px;
+    padding:4px 10px; border-radius:999px;
+    background:var(--accent-g); border:1px solid rgba(249,115,22,.3);
+    font-size:.75rem; font-weight:600; color:var(--accent);
+  }
+  .filter-active-badge.show { display:inline-flex; }
 
-    /* empty-state row */
-    .empty-row td{
-      text-align:center;padding:36px;
-      color:var(--muted2);font-size:.9rem;
-    }
+  /* ══════════════════════════════════════
+     KPI CARDS
+  ══════════════════════════════════════ */
+  .grid { display:grid; gap:12px; }
+  .grid-4 { grid-template-columns:repeat(4,1fr); }
+  .grid-2 { grid-template-columns:repeat(2,1fr); }
 
-    /* ══════════════════════════════════
-       RESPONSIVE
-    ══════════════════════════════════ */
-    @media(max-width:1080px){
-      .grid-4{ grid-template-columns:repeat(2,1fr); }
-    }
-    @media(max-width:720px){
-      .container{ padding:16px 14px 40px; }
-      .grid-4,.grid-2{ grid-template-columns:1fr; }
-      .hero{ flex-direction:column;align-items:flex-start; }
-      .topbar{ flex-direction:column; }
-      .searchbar{ flex-direction:column;align-items:stretch; }
-      .searchbar input,.searchbar select{ min-width:100%; }
-    }
+  .kpi { padding:20px 20px 18px; }
+
+  .kpi-icon {
+    width:38px; height:38px; border-radius:11px;
+    display:grid; place-items:center; font-size:1.1rem;
+    margin-bottom:14px;
+  }
+  .kpi[data-type=total]   .kpi-icon { background:var(--c-total-bg); }
+  .kpi[data-type=done]    .kpi-icon { background:var(--c-ok-bg); }
+  .kpi[data-type=pending] .kpi-icon { background:var(--c-pend-bg); }
+  .kpi[data-type=failed]  .kpi-icon { background:var(--c-fail-bg); }
+
+  .kpi .label {
+    font-size:.72rem; font-weight:600; text-transform:uppercase;
+    letter-spacing:.07em; color:var(--text2); margin-bottom:6px;
+  }
+  .kpi .value {
+    font-size:2.2rem; font-weight:800; letter-spacing:-.05em;
+    line-height:1; color:var(--text);
+  }
+  .kpi[data-type=total]   .value { color:var(--c-total); }
+  .kpi[data-type=done]    .value {
+    color:var(--c-ok);
+    text-shadow:0 0 20px var(--c-ok-glow);
+  }
+  .kpi[data-type=pending] .value {
+    color:var(--c-pend);
+    text-shadow:0 0 20px var(--c-pend-glow);
+  }
+  .kpi[data-type=failed]  .value {
+    color:var(--c-fail);
+    text-shadow:0 0 20px var(--c-fail-glow);
+  }
+
+  /* progress bar under each KPI */
+  .kpi-bar-wrap {
+    margin-top:14px; height:3px; border-radius:3px;
+    background:rgba(255,255,255,.06); overflow:hidden;
+  }
+  .kpi-bar {
+    height:100%; border-radius:3px;
+    transition:width .8s cubic-bezier(.4,0,.2,1);
+    width:0%;
+  }
+  .kpi[data-type=done]    .kpi-bar { background:var(--c-ok); box-shadow:0 0 8px var(--c-ok-glow); }
+  .kpi[data-type=pending] .kpi-bar { background:var(--c-pend);box-shadow:0 0 8px var(--c-pend-glow);}
+  .kpi[data-type=failed]  .kpi-bar { background:var(--c-fail);box-shadow:0 0 8px var(--c-fail-glow);}
+  .kpi[data-type=total]   .kpi-bar { background:var(--c-total);}
+
+  .kpi-pct {
+    margin-top:6px; font-size:.72rem; color:var(--text2); font-weight:500;
+  }
+
+  /* ══════════════════════════════════════
+     TABLES
+  ══════════════════════════════════════ */
+  .table-wrap {
+    overflow-x:auto; margin-top:12px;
+    border-radius:var(--r-sm);
+    border:1px solid var(--line2);
+  }
+  table {
+    width:100%; border-collapse:collapse;
+    font-size:.83rem;
+  }
+  thead tr {
+    background:rgba(255,255,255,.03);
+    border-bottom:1px solid var(--line);
+    position:sticky; top:0; z-index:2;
+  }
+  th {
+    padding:11px 14px; text-align:left;
+    font-size:.7rem; font-weight:700;
+    text-transform:uppercase; letter-spacing:.08em;
+    color:var(--text3); white-space:nowrap;
+    user-select:none; cursor:pointer;
+    transition:color .14s;
+  }
+  th:hover { color:var(--text2); }
+  th.sort-asc::after  { content:" ↑"; color:var(--accent); }
+  th.sort-desc::after { content:" ↓"; color:var(--accent); }
+
+  td {
+    padding:10px 14px;
+    border-bottom:1px solid var(--line2);
+    color:var(--text); vertical-align:middle;
+  }
+  tbody tr:last-child td { border-bottom:none; }
+  tbody tr { transition:background .12s; cursor:default; }
+  tbody tr:hover { background:rgba(255,255,255,.035); }
+
+  /* row-level colouring by status */
+  tbody tr[data-status=completed]:hover { background:rgba(34,197,94,.04); }
+  tbody tr[data-status=pending]:hover   { background:rgba(245,158,11,.04); }
+  tbody tr[data-status=failed]          { background:rgba(239,68,68,.025); }
+  tbody tr[data-status=failed]:hover    { background:rgba(239,68,68,.05); }
+  /* failed row: subtle left border */
+  tbody tr[data-status=failed] td:first-child {
+    border-left:2px solid var(--c-fail);
+    padding-left:12px;
+  }
+
+  /* ── STATUS / FINAL STATUS BADGES ── */
+  .badge {
+    display:inline-flex; align-items:center; gap:5px;
+    padding:4px 10px; border-radius:999px;
+    font-size:.72rem; font-weight:700;
+    letter-spacing:.05em; text-transform:uppercase;
+    white-space:nowrap;
+  }
+  .badge-dot {
+    width:6px; height:6px; border-radius:50%; flex-shrink:0;
+  }
+
+  /* COMPLETED / PASS */
+  .badge.completed, .badge.pass, .badge.ok {
+    background:var(--c-ok-bg);
+    border:1px solid var(--c-ok-bdr);
+    color:var(--c-ok);
+  }
+  .badge.completed .badge-dot,
+  .badge.pass .badge-dot,
+  .badge.ok .badge-dot {
+    background:var(--c-ok);
+    box-shadow:0 0 5px var(--c-ok);
+    animation:pulse 2s infinite;
+  }
+
+  /* PENDING / DUE */
+  .badge.pending, .badge.due {
+    background:var(--c-pend-bg);
+    border:1px solid var(--c-pend-bdr);
+    color:var(--c-pend);
+  }
+  .badge.pending .badge-dot,
+  .badge.due .badge-dot {
+    background:var(--c-pend);
+    box-shadow:0 0 5px var(--c-pend);
+  }
+
+  /* FAILED / FAIL */
+  .badge.failed, .badge.fail {
+    background:var(--c-fail-bg);
+    border:1px solid var(--c-fail-bdr);
+    color:var(--c-fail);
+  }
+  .badge.failed .badge-dot,
+  .badge.fail .badge-dot {
+    background:var(--c-fail);
+    box-shadow:0 0 5px var(--c-fail);
+    animation:pulse 1.2s infinite;
+  }
+
+  /* empty-state */
+  .empty-row td {
+    text-align:center; padding:44px; color:var(--text3);
+    font-size:.88rem; pointer-events:none;
+  }
+  .empty-row td::before {
+    content:"🧯"; display:block;
+    font-size:2rem; margin-bottom:10px; opacity:.3;
+  }
+
+  /* ── dept table: inline mini progress bars ── */
+  .dept-bar-cell { min-width:90px; }
+  .dept-mini-bar {
+    height:5px; border-radius:5px;
+    background:rgba(255,255,255,.06); overflow:hidden;
+    margin-top:4px;
+  }
+  .dept-mini-fill {
+    height:100%; border-radius:5px;
+    transition:width .7s ease;
+  }
+  .dept-mini-fill.ok   { background:var(--c-ok); }
+  .dept-mini-fill.pend { background:var(--c-pend); }
+  .dept-mini-fill.fail { background:var(--c-fail); }
+
+  /* ══════════════════════════════════════
+     TOAST NOTIFICATIONS
+  ══════════════════════════════════════ */
+  #toastContainer {
+    position:fixed; bottom:24px; right:24px; z-index:9999;
+    display:flex; flex-direction:column; gap:8px;
+    pointer-events:none;
+  }
+  .toast {
+    display:flex; align-items:center; gap:10px;
+    padding:12px 16px; border-radius:12px;
+    background:var(--bg2); border:1px solid var(--line);
+    box-shadow:0 8px 30px rgba(0,0,0,.4);
+    font-size:.83rem; font-weight:500; color:var(--text);
+    pointer-events:auto;
+    animation:toast-in .25s ease;
+    max-width:320px;
+  }
+  @keyframes toast-in {
+    from { transform:translateX(24px); opacity:0; }
+    to   { transform:none; opacity:1; }
+  }
+  .toast.ok   { border-color:var(--c-ok-bdr); }
+  .toast.warn { border-color:var(--c-pend-bdr); }
+  .toast.err  { border-color:var(--c-fail-bdr); }
+  .toast-icon { font-size:1rem; flex-shrink:0; }
+
+  /* ══════════════════════════════════════
+     LAST UPDATED BAR
+  ══════════════════════════════════════ */
+  .last-updated-bar {
+    display:flex; align-items:center; gap:8px;
+    font-size:.75rem; color:var(--text3);
+    padding:4px 0; margin-bottom:4px;
+  }
+  .last-updated-bar span { color:var(--text2); font-weight:500; }
+
+  /* ══════════════════════════════════════
+     SEARCH HIGHLIGHT
+  ══════════════════════════════════════ */
+  mark.hl {
+    background:rgba(249,115,22,.25);
+    color:var(--accent);
+    border-radius:2px; padding:0 1px;
+  }
+
+  /* ══════════════════════════════════════
+     RESPONSIVE
+  ══════════════════════════════════════ */
+  @media(max-width:1100px){
+    .grid-4 { grid-template-columns:repeat(2,1fr); }
+  }
+  @media(max-width:740px){
+    .container { padding:12px 12px 48px; }
+    .grid-4,.grid-2 { grid-template-columns:1fr; }
+    .hero { flex-direction:column; align-items:flex-start; }
+    .topbar { flex-direction:column; }
+    .searchbar { flex-direction:column; align-items:stretch; }
+    .searchbar input,.searchbar select { width:100%; min-width:unset; }
+  }
   </style>
 </head>
 <body>
-  <div class="grid-overlay"></div>
 
-  <div class="container" id="dashboardPage">
+<!-- Loading overlay — shown on first paint, hidden by app.js -->
+<div id="loadingOverlay">
+  <div class="loader-ring"></div>
+  <div class="loader-text">Loading Dashboard…</div>
+</div>
 
-    <!-- ══════════ HERO ══════════ -->
-    <div class="hero">
-      <div class="brand">
-        <div class="logo">🧯</div>
-        <div>
-          <h1>AHM Fire Extinguisher Dashboard</h1>
-          <p>Monthly inspection tracking and status monitoring</p>
-        </div>
-      </div>
-      <div class="actions">
-        <div id="userChip" class="tag">Not logged in</div>
-        <a class="btn secondary" href="login.html">Login</a>
-        <button class="btn secondary" data-logout type="button">Logout</button>
+<!-- Toast container -->
+<div id="toastContainer"></div>
+
+<div class="grid-overlay"></div>
+
+<div class="container" id="dashboardPage">
+
+  <!-- ══════════ HERO ══════════ -->
+  <div class="hero">
+    <div class="brand">
+      <div class="logo">🧯</div>
+      <div>
+        <h1>AHM Fire Extinguisher Dashboard</h1>
+        <p>Monthly inspection tracking and status monitoring</p>
       </div>
     </div>
+    <div class="actions">
+      <!-- last-updated shown inline on wide screens -->
+      <div class="last-updated-bar" id="lastUpdatedBar" style="display:none">
+        Updated <span id="lastUpdatedTime">—</span>
+      </div>
+      <div id="userChip" class="tag">Not logged in</div>
+      <a class="btn secondary" href="login.html">Login</a>
+      <button class="btn secondary" data-logout type="button">Logout</button>
+    </div>
+  </div>
 
-    <!-- notice -->
-    <div id="dashNotice" class="notice hidden"></div>
+  <!-- notice -->
+  <div id="dashNotice" class="notice hidden"></div>
 
-    <!-- ══════════ FILTER PANEL ══════════ -->
-    <div class="card panel">
-      <div class="topbar">
-        <div class="section-title"><h2>Dashboard Filters</h2></div>
-        <div class="searchbar">
-          <input id="monthFilter" type="month">
-          <select id="statusFilter">
-            <option value="all">All Items</option>
-            <option value="pending">Pending Items</option>
-            <option value="completed">Completed Items</option>
-            <option value="failed">Failed Items</option>
-          </select>
-          <select id="departmentFilter">
-            <option value="">All Departments</option>
-          </select>
-          <input id="searchFilter" type="text" placeholder="Search equipment / location / remarks">
-          <button id="refreshBtn" type="button">Refresh</button>
-          <button id="exportBtn" type="button" class="btn good">⬇ Download CSV</button>
-          <a class="btn secondary" href="inspect.html?id=AHM/HSE/FEX/001">Open Sample Form</a>
-        </div>
+  <!-- ══════════ FILTER PANEL ══════════ -->
+  <div class="card panel">
+    <div class="topbar">
+      <div class="section-title">
+        <h2>Dashboard Filters</h2>
+        <span class="filter-active-badge" id="filterActiveBadge">Filtered</span>
+      </div>
+      <div class="searchbar">
+        <input id="monthFilter" type="month">
+        <select id="statusFilter">
+          <option value="all">All Items</option>
+          <option value="pending">Pending Items</option>
+          <option value="completed">Completed Items</option>
+          <option value="failed">Failed Items</option>
+        </select>
+        <select id="departmentFilter">
+          <option value="">All Departments</option>
+        </select>
+        <input id="searchFilter" type="text" placeholder="🔍  Search equipment / location / remarks">
+        <button id="refreshBtn" type="button">↺ Refresh</button>
+        <button id="exportBtn" type="button" class="btn good">⬇ Download CSV</button>
+        <a class="btn secondary" href="inspect.html?id=AHM/HSE/FEX/001">Open Sample Form</a>
       </div>
     </div>
+  </div>
 
-    <!-- ══════════ KPI ROW ══════════ -->
-    <div class="grid grid-4" style="margin-top:14px">
-      <div class="card kpi" data-type="total">
-        <div class="label">Total Equipment</div>
-        <div id="kpiTotal" class="value">-</div>
-      </div>
-      <div class="card kpi" data-type="done">
-        <div class="label">Completed This Month</div>
-        <div id="kpiChecked" class="value">-</div>
-      </div>
-      <div class="card kpi" data-type="pending">
-        <div class="label">Pending This Month</div>
-        <div id="kpiPending" class="value">-</div>
-      </div>
-      <div class="card kpi" data-type="failed">
-        <div class="label">Failed This Month</div>
-        <div id="kpiFailed" class="value">-</div>
-      </div>
+  <!-- ══════════ KPI ROW ══════════ -->
+  <div class="grid grid-4" style="margin-top:12px">
+
+    <div class="card kpi" data-type="total">
+      <div class="kpi-icon">📊</div>
+      <div class="label">Total Equipment</div>
+      <div id="kpiTotal" class="value">—</div>
+      <div class="kpi-bar-wrap"><div class="kpi-bar" id="kpiTotalBar" style="width:100%"></div></div>
+      <div class="kpi-pct" id="kpiTotalPct"></div>
     </div>
 
-    <!-- ══════════ EQUIPMENT TABLE ══════════ -->
-    <div class="card panel" style="margin-top:14px">
+    <div class="card kpi" data-type="done">
+      <div class="kpi-icon">✅</div>
+      <div class="label">Completed This Month</div>
+      <div id="kpiChecked" class="value">—</div>
+      <div class="kpi-bar-wrap"><div class="kpi-bar" id="kpiCheckedBar"></div></div>
+      <div class="kpi-pct" id="kpiCheckedPct"></div>
+    </div>
+
+    <div class="card kpi" data-type="pending">
+      <div class="kpi-icon">⏳</div>
+      <div class="label">Pending This Month</div>
+      <div id="kpiPending" class="value">—</div>
+      <div class="kpi-bar-wrap"><div class="kpi-bar" id="kpiPendingBar"></div></div>
+      <div class="kpi-pct" id="kpiPendingPct"></div>
+    </div>
+
+    <div class="card kpi" data-type="failed">
+      <div class="kpi-icon">🚨</div>
+      <div class="label">Failed This Month</div>
+      <div id="kpiFailed" class="value">—</div>
+      <div class="kpi-bar-wrap"><div class="kpi-bar" id="kpiFailedBar"></div></div>
+      <div class="kpi-pct" id="kpiFailedPct"></div>
+    </div>
+
+  </div>
+
+  <!-- ══════════ EQUIPMENT TABLE ══════════ -->
+  <div class="card panel" style="margin-top:12px">
+    <div class="topbar">
       <div class="section-title">
         <h2>Equipment Status List</h2>
-        <div class="small">Records: <strong id="recordCount">0</strong></div>
+        <span class="small">Records: <strong id="recordCount">0</strong></span>
       </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Equipment ID</th>
+            <th>Location</th>
+            <th>Department</th>
+            <th>Type</th>
+            <th>Status</th>
+            <th>Inspection Date</th>
+            <th>Inspector</th>
+            <th>Final Status</th>
+            <th>Remarks</th>
+          </tr>
+        </thead>
+        <tbody id="equipmentTableBody">
+          <!-- skeleton rows while loading -->
+          <tr class="skeleton-row"><td><div class="skeleton-cell" style="width:80%"></div></td><td><div class="skeleton-cell" style="width:70%"></div></td><td><div class="skeleton-cell" style="width:60%"></div></td><td><div class="skeleton-cell" style="width:50%"></div></td><td><div class="skeleton-cell" style="width:55%"></div></td><td><div class="skeleton-cell" style="width:65%"></div></td><td><div class="skeleton-cell" style="width:60%"></div></td><td><div class="skeleton-cell" style="width:55%"></div></td><td><div class="skeleton-cell" style="width:80%"></div></td></tr>
+          <tr class="skeleton-row"><td><div class="skeleton-cell" style="width:75%"></div></td><td><div class="skeleton-cell" style="width:65%"></div></td><td><div class="skeleton-cell" style="width:55%"></div></td><td><div class="skeleton-cell" style="width:45%"></div></td><td><div class="skeleton-cell" style="width:50%"></div></td><td><div class="skeleton-cell" style="width:60%"></div></td><td><div class="skeleton-cell" style="width:55%"></div></td><td><div class="skeleton-cell" style="width:50%"></div></td><td><div class="skeleton-cell" style="width:75%"></div></td></tr>
+          <tr class="skeleton-row"><td><div class="skeleton-cell" style="width:85%"></div></td><td><div class="skeleton-cell" style="width:72%"></div></td><td><div class="skeleton-cell" style="width:62%"></div></td><td><div class="skeleton-cell" style="width:48%"></div></td><td><div class="skeleton-cell" style="width:52%"></div></td><td><div class="skeleton-cell" style="width:68%"></div></td><td><div class="skeleton-cell" style="width:58%"></div></td><td><div class="skeleton-cell" style="width:54%"></div></td><td><div class="skeleton-cell" style="width:82%"></div></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══════════ BOTTOM GRID ══════════ -->
+  <div class="grid grid-2" style="margin-top:12px">
+
+    <div class="card panel">
+      <div class="section-title"><h2>Department Summary</h2></div>
       <div class="table-wrap">
         <table>
           <thead>
             <tr>
-              <th>Equipment ID</th>
-              <th>Location</th>
               <th>Department</th>
-              <th>Type</th>
-              <th>Status</th>
-              <th>Inspection Date</th>
-              <th>Inspector</th>
-              <th>Final Status</th>
-              <th>Remarks</th>
+              <th>Total</th>
+              <th>Completed</th>
+              <th>Pending</th>
+              <th>Failed</th>
             </tr>
           </thead>
-          <tbody id="equipmentTableBody">
-            <tr class="empty-row"><td colspan="9">Loading equipment data…</td></tr>
+          <tbody id="deptTable">
+            <tr class="skeleton-row"><td><div class="skeleton-cell" style="width:80%"></div></td><td><div class="skeleton-cell" style="width:40%"></div></td><td><div class="skeleton-cell" style="width:40%"></div></td><td><div class="skeleton-cell" style="width:40%"></div></td><td><div class="skeleton-cell" style="width:40%"></div></td></tr>
+            <tr class="skeleton-row"><td><div class="skeleton-cell" style="width:70%"></div></td><td><div class="skeleton-cell" style="width:40%"></div></td><td><div class="skeleton-cell" style="width:40%"></div></td><td><div class="skeleton-cell" style="width:40%"></div></td><td><div class="skeleton-cell" style="width:40%"></div></td></tr>
           </tbody>
         </table>
       </div>
     </div>
 
-    <!-- ══════════ BOTTOM GRID ══════════ -->
-    <div class="grid grid-2" style="margin-top:14px">
-
-      <!-- Dept summary -->
-      <div class="card panel">
-        <div class="section-title"><h2>Department Summary</h2></div>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Department</th>
-                <th>Total</th>
-                <th>Completed</th>
-                <th>Pending</th>
-                <th>Failed</th>
-              </tr>
-            </thead>
-            <tbody id="deptTable">
-              <tr class="empty-row"><td colspan="5">No data</td></tr>
-            </tbody>
-          </table>
-        </div>
+    <div class="card panel">
+      <div class="section-title"><h2>Recent Inspections</h2></div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Equipment ID</th>
+              <th>Location</th>
+              <th>Department</th>
+              <th>Inspector</th>
+              <th>Final Status</th>
+              <th>Remarks</th>
+            </tr>
+          </thead>
+          <tbody id="recentTable">
+            <tr class="skeleton-row"><td><div class="skeleton-cell" style="width:70%"></div></td><td><div class="skeleton-cell" style="width:75%"></div></td><td><div class="skeleton-cell" style="width:60%"></div></td><td><div class="skeleton-cell" style="width:65%"></div></td><td><div class="skeleton-cell" style="width:55%"></div></td><td><div class="skeleton-cell" style="width:50%"></div></td><td><div class="skeleton-cell" style="width:80%"></div></td></tr>
+            <tr class="skeleton-row"><td><div class="skeleton-cell" style="width:65%"></div></td><td><div class="skeleton-cell" style="width:70%"></div></td><td><div class="skeleton-cell" style="width:55%"></div></td><td><div class="skeleton-cell" style="width:60%"></div></td><td><div class="skeleton-cell" style="width:50%"></div></td><td><div class="skeleton-cell" style="width:48%"></div></td><td><div class="skeleton-cell" style="width:75%"></div></td></tr>
+          </tbody>
+        </table>
       </div>
-
-      <!-- Recent inspections -->
-      <div class="card panel">
-        <div class="section-title"><h2>Recent Inspections</h2></div>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Equipment ID</th>
-                <th>Location</th>
-                <th>Department</th>
-                <th>Inspector</th>
-                <th>Final Status</th>
-                <th>Remarks</th>
-              </tr>
-            </thead>
-            <tbody id="recentTable">
-              <tr class="empty-row"><td colspan="7">No recent inspections</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
     </div>
 
-  </div><!-- /container -->
+  </div>
 
-  <script src="assets/config.js"></script>
-  <script src="assets/app.js"></script>
+</div><!-- /container #dashboardPage -->
+
+<!-- ══════════════════════════════════════════════════════════════
+     ENHANCEMENT LAYER — injected on top of existing app.js
+     All IDs / classes / data- attributes for app.js are unchanged.
+     This script only adds UI polish: badge generation, toast,
+     skeleton hiding, KPI bars, filter badge, last-updated time,
+     and auto-refresh every 60 s.
+══════════════════════════════════════════════════════════════════ -->
+<script>
+/* ── badge helper — called by app.js or by the MutationObserver ── */
+window.makeBadge = function(statusText) {
+  if (!statusText) return '—';
+  const s   = String(statusText).trim().toLowerCase();
+  const map = {
+    completed:'completed', complete:'completed', pass:'pass', ok:'ok', done:'completed',
+    pending:'pending',   due:'pending',    scheduled:'pending',
+    failed:'failed',     fail:'fail',       overdue:'failed', reject:'failed'
+  };
+  const cls = map[s] || '';
+  if (!cls) return `<span style="color:var(--text2)">${statusText}</span>`;
+  return `<span class="badge ${cls}"><span class="badge-dot"></span>${statusText}</span>`;
+};
+
+/* ── toast system ── */
+window.showToast = function(msg, type='ok', duration=3500) {
+  const icons = { ok:'✅', warn:'⚠️', err:'🚨', info:'ℹ️' };
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.innerHTML = `<span class="toast-icon">${icons[type]||'ℹ️'}</span><span>${msg}</span>`;
+  document.getElementById('toastContainer').appendChild(el);
+  setTimeout(() => { el.style.opacity='0'; el.style.transform='translateX(24px)';
+    el.style.transition='.25s ease';
+    setTimeout(()=>el.remove(), 280);
+  }, duration);
+};
+
+/* ── KPI progress bar updater ── */
+window.updateKPIBars = function() {
+  const total   = parseInt(document.getElementById('kpiTotal')?.textContent)   || 0;
+  const checked = parseInt(document.getElementById('kpiChecked')?.textContent) || 0;
+  const pending = parseInt(document.getElementById('kpiPending')?.textContent) || 0;
+  const failed  = parseInt(document.getElementById('kpiFailed')?.textContent)  || 0;
+  if (!total) return;
+  const pct = v => Math.round(v/total*100);
+  const set = (barId, pctId, val) => {
+    const bar = document.getElementById(barId);
+    const pctEl = document.getElementById(pctId);
+    if (bar) bar.style.width = pct(val) + '%';
+    if (pctEl) pctEl.textContent = pct(val) + '% of total';
+  };
+  set('kpiTotalBar',   'kpiTotalPct',   total);
+  set('kpiCheckedBar', 'kpiCheckedPct', checked);
+  set('kpiPendingBar', 'kpiPendingPct', pending);
+  set('kpiFailedBar',  'kpiFailedPct',  failed);
+};
+
+/* ── last-updated stamp ── */
+window.stampLastUpdated = function() {
+  const bar = document.getElementById('lastUpdatedBar');
+  const t   = document.getElementById('lastUpdatedTime');
+  if (bar && t) {
+    bar.style.display = 'flex';
+    t.textContent = new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+  }
+};
+
+/* ── hide loading overlay (called by app.js when data ready) ── */
+window.hideLoadingOverlay = function() {
+  const ov = document.getElementById('loadingOverlay');
+  if (ov) ov.classList.add('hidden');
+};
+
+/* ── filter-active badge ── */
+function checkFilterActive() {
+  const badge  = document.getElementById('filterActiveBadge');
+  const month  = document.getElementById('monthFilter')?.value;
+  const status = document.getElementById('statusFilter')?.value;
+  const dept   = document.getElementById('departmentFilter')?.value;
+  const search = document.getElementById('searchFilter')?.value?.trim();
+  const active = (status && status !== 'all') || dept || search;
+  badge?.classList.toggle('show', !!active);
+}
+['monthFilter','statusFilter','departmentFilter','searchFilter'].forEach(id => {
+  document.getElementById(id)?.addEventListener('input',  checkFilterActive);
+  document.getElementById(id)?.addEventListener('change', checkFilterActive);
+});
+
+/* ── MutationObserver: watch for KPI values and table changes,
+      then auto-apply badges + bars ── */
+const kpiIds = ['kpiTotal','kpiChecked','kpiPending','kpiFailed'];
+kpiIds.forEach(id => {
+  const el = document.getElementById(id);
+  if (!el) return;
+  new MutationObserver(() => {
+    updateKPIBars();
+    stampLastUpdated();
+  }).observe(el, { childList:true, subtree:true, characterData:true });
+});
+
+/* Watch the equipment table body — when app.js populates it,
+   auto-add data-status attrs and badges to Status / Final Status cols */
+const equipBody = document.getElementById('equipmentTableBody');
+if (equipBody) {
+  new MutationObserver((mutations) => {
+    mutations.forEach(m => {
+      if (m.addedNodes.length === 0) return;
+      equipBody.querySelectorAll('tr:not([data-enhanced])').forEach(row => {
+        const tds = row.querySelectorAll('td');
+        if (!tds.length || row.classList.contains('skeleton-row')) return;
+
+        // cols: 0=ID,1=Location,2=Dept,3=Type,4=Status,5=Date,6=Inspector,7=FinalStatus,8=Remarks
+        const statusTd = tds[4];
+        const finalTd  = tds[7];
+
+        // derive data-status from whichever col has content
+        const rawStatus = (finalTd?.textContent || statusTd?.textContent || '').trim().toLowerCase();
+        const cls = rawStatus.includes('complete') || rawStatus.includes('pass') ? 'completed'
+                  : rawStatus.includes('fail')     || rawStatus.includes('overdue') ? 'failed'
+                  : rawStatus.includes('pending')  || rawStatus.includes('due')    ? 'pending'
+                  : '';
+        if (cls) row.setAttribute('data-status', cls);
+
+        // wrap Status text in badge
+        if (statusTd && !statusTd.querySelector('.badge')) {
+          const txt = statusTd.textContent.trim();
+          if (txt) statusTd.innerHTML = makeBadge(txt);
+        }
+        // wrap Final Status text in badge
+        if (finalTd && !finalTd.querySelector('.badge')) {
+          const txt = finalTd.textContent.trim();
+          if (txt) finalTd.innerHTML = makeBadge(txt);
+        }
+
+        row.setAttribute('data-enhanced','1');
+      });
+      hideLoadingOverlay();
+      stampLastUpdated();
+    });
+  }).observe(equipBody, { childList:true, subtree:true });
+}
+
+/* Watch recent & dept tables for badge injection */
+['recentTable','deptTable'].forEach(tableId => {
+  const tbody = document.getElementById(tableId);
+  if (!tbody) return;
+  new MutationObserver(() => {
+    tbody.querySelectorAll('tr:not([data-enhanced])').forEach(row => {
+      if (row.classList.contains('skeleton-row')) return;
+      // Final Status is last td before Remarks for recentTable (col 5 of 7)
+      const tds = row.querySelectorAll('td');
+      const targetIdx = tableId === 'recentTable' ? 5 : -1;
+      if (targetIdx >= 0 && tds[targetIdx] && !tds[targetIdx].querySelector('.badge')) {
+        const txt = tds[targetIdx].textContent.trim();
+        if (txt) tds[targetIdx].innerHTML = makeBadge(txt);
+      }
+      row.setAttribute('data-enhanced','1');
+    });
+  }).observe(tbody, { childList:true });
+});
+
+/* ── Auto-refresh every 60 seconds ── */
+let autoRefreshTimer = setInterval(() => {
+  const btn = document.getElementById('refreshBtn');
+  if (btn) { btn.click(); showToast('Auto-refreshed data', 'info', 2500); }
+}, 60000);
+
+/* ── Keyboard shortcut: R = refresh, Esc = clear search ── */
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+  if (e.key === 'r' || e.key === 'R') document.getElementById('refreshBtn')?.click();
+  if (e.key === 'Escape') {
+    const s = document.getElementById('searchFilter');
+    if (s) { s.value = ''; s.dispatchEvent(new Event('input')); checkFilterActive(); }
+  }
+});
+
+/* ── Refresh button feedback ── */
+document.getElementById('refreshBtn')?.addEventListener('click', function() {
+  this.textContent = '↺ Loading…';
+  this.disabled = true;
+  setTimeout(() => {
+    this.textContent = '↺ Refresh';
+    this.disabled = false;
+    showToast('Data refreshed', 'ok', 2000);
+    stampLastUpdated();
+  }, 1200);
+});
+
+/* ── Export button feedback ── */
+document.getElementById('exportBtn')?.addEventListener('click', function() {
+  showToast('Preparing CSV download…', 'info', 2000);
+});
+
+/* ── Hide overlay after timeout (failsafe if app.js doesn't call hideLoadingOverlay) ── */
+setTimeout(hideLoadingOverlay, 8000);
+</script>
+
+<script src="assets/config.js"></script>
+<script src="assets/app.js"></script>
 </body>
 </html>
